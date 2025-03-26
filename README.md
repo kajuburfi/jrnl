@@ -21,6 +21,6 @@ A simple program to list the day's activities.
   # date (day)
   - [Tag1] Did this stuff.
   - Did some other stuff.
-  - [Tag2] Also some stuff.
+  - [Tag2] [Tag3] Also some stuff.
   ```
 - [ ] All files throughout all years must be searchable both for tags and words/phrases.
