@@ -2,8 +2,8 @@
 A simple program to list the day's activities.
 
 ### TODO / Roadmap
-- [ ] Folder to save all jrnls.
-- [ ] Folder structure:
+- [X] Folder to save all jrnls.
+- [X] Folder structure:
   ``` 
   .jrnl
   |
@@ -15,12 +15,12 @@ A simple program to list the day's activities.
   |  '- year2_month2.md
   ```
 - [ ] typing `jrnl` should open the current month's file and enter today's date and day. If already entered, it should not duplicate itself.
-- [ ] Data to be entered as unordered lists.
-- [ ] Tags should be allowed as:
+- [X] Data to be entered as unordered lists.
+- [X] Tags should be allowed as:
   ```md
   # date (day)
   - [Tag1] Did this stuff.
   - Did some other stuff.
   - [Tag2] [Tag3] Also some stuff.
   ```
-- [ ] All files throughout all years must be searchable both for tags and words/phrases.
+- [X] All files throughout all years must be searchable both for tags and words/phrases.
