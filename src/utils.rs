@@ -1,16 +1,17 @@
-use chrono::{DateTime, Datelike, Local, Month, NaiveDate, format::ParseErrorKind};
+use crate::utils::funcs::*;
+use chrono::{DateTime, Datelike, Local, NaiveDate, format::ParseErrorKind};
 use colored::Colorize;
 use comfy_table::{ContentArrangement, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
-use inquire::DateSelect;
-use pager::Pager;
 use serde::Deserialize;
 use std::{
     collections::HashMap,
     fs::{self, File, OpenOptions},
     io::{BufRead, BufReader, ErrorKind, Write},
-    path::Path,
     process,
 };
+
+#[path = "funcs.rs"]
+pub mod funcs;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -18,56 +19,9 @@ pub struct Config {
     add_food_column: bool,
     editor: String,
     pager: String,
-}
-
-fn default_conf() -> Config {
-    Config {
-        add_weekday: true,
-        add_food_column: true,
-        editor: String::from("hx"),
-        pager: String::from("less"),
-    }
-}
-
-/// Checks if the file exists, if not, it makes the file.
-/// If the file previously existed, returns true
-/// else false.
-pub fn check_file_existed(filename: &str) -> bool {
-    let path: &Path = Path::new(filename);
-
-    if !path.exists() {
-        File::create_new(filename.to_string()).expect("Could not make new file.");
-        false
-    } else {
-        true
-    }
-}
-
-/// Takes in a number, generally provided from some NaiveDate(converted),
-/// and returns the string. Useful to get the correct file path.
-pub fn correct_month_nums(num: u32) -> String {
-    match num {
-        1 => "01".to_string(),
-        2 => "02".to_string(),
-        3 => "03".to_string(),
-        4 => "04".to_string(),
-        5 => "05".to_string(),
-        6 => "06".to_string(),
-        7 => "07".to_string(),
-        8 => "08".to_string(),
-        9 => "09".to_string(),
-        _ => "00".to_string(),
-    }
-}
-
-/// Takes a month number(generally from NaiveDate) and returns
-/// the name of the month. Used for printing purposes.
-pub fn month_no_to_name(month_num: u32) -> String {
-    // Syntax according to the docs
-    let month = Month::try_from(u8::try_from(month_num).unwrap())
-        .ok()
-        .unwrap_or(Month::January);
-    month.name().to_string()
+    max_rows: u32,
+    add_timestamp: bool,
+    when_pager: String,
 }
 
 /// Returns all headings(<h1>) and their corresponding line numbers
@@ -115,7 +69,8 @@ pub fn get_headings(filename: &str) -> (Vec<String>, Vec<u32>) {
 pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
     // Convert string date to NaiveDate to get the weekday
     let date_naive = NaiveDate::parse_from_str(&date, "%Y-%m-%d").unwrap();
-    let weekday = date_naive.weekday().to_string();
+    let weekday = date_naive.weekday().to_string().to_uppercase();
+    let timestamp = Local::now().format("%H:%M:%S").to_string();
 
     let mut file_data: File = OpenOptions::new()
         .write(true)
@@ -128,6 +83,9 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
     let mut input_str = String::new();
     if config.add_weekday {
         input_str.push_str(&format!("\n### {}", &weekday));
+    }
+    if config.add_timestamp {
+        input_str.push_str(&format!(" ({})", &timestamp));
     }
     input_str.push_str(&format!("\n# {}", &date));
     if config.add_food_column {
@@ -322,7 +280,7 @@ pub fn search_for_tags(tag: &str, date: NaiveDate) -> (Vec<String>, Vec<String>)
         if cur_line.contains(&format!("[{}]", tag)) {
             let line_to_push = cur_line
                 .replace(&format!("[{}]", tag), &format!("[{}]", tag.cyan()))
-                .replace("-", "")
+                .replace("- ", "")
                 .trim()
                 .to_string();
             tagged_entries.push(line_to_push);
@@ -361,75 +319,6 @@ pub fn parse_entry_args(args: &str) -> NaiveDate {
         },
     };
     entry_date
-}
-
-/// Makes a table to show the tags and related records
-pub fn make_tags_table(dates_values: (Vec<String>, Vec<String>)) -> Table {
-    let (dates, values) = dates_values;
-    let mut table = Table::new();
-
-    table
-        .load_preset(UTF8_FULL)
-        .apply_modifier(UTF8_ROUND_CORNERS)
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec!["Date of Entry".green(), "Record".green()]);
-    for (i, date) in dates.iter().enumerate() {
-        for (j, value) in values.iter().enumerate() {
-            if i == j {
-                table.add_row(vec![date, value]);
-            }
-        }
-    }
-    table
-}
-
-/// Makes a food table to show food
-pub fn make_food_table(dates_values: (Vec<String>, Vec<Vec<String>>)) -> Table {
-    let (dates, values) = dates_values;
-    let mut table = Table::new();
-
-    table
-        .load_preset(UTF8_FULL)
-        .apply_modifier(UTF8_ROUND_CORNERS)
-        // .set_width(100)
-        // TODO: Fix weird arrangement when paging
-        .set_content_arrangement(ContentArrangement::Dynamic)
-        .set_header(vec![
-            "Date of Entry".green(),
-            "Breakfast".green(),
-            "Lunch".green(),
-            "Dinner".green(),
-            "Other".green(),
-        ]);
-    for (i, date) in dates.iter().enumerate() {
-        for (j, value) in values.iter().enumerate() {
-            if i == j {
-                let mut temp: Vec<String> = Vec::new();
-                temp.push(date.to_string());
-                for item in value.iter() {
-                    temp.push(item.to_string());
-                }
-                table.add_row(temp);
-            }
-        }
-    }
-    table
-}
-
-/// Inquires the date in case not provided.
-pub fn inquire_date() -> NaiveDate {
-    let date_prompt = DateSelect::new("Select a date to search for its entry:").prompt();
-    let date = match date_prompt {
-        Ok(date) => date,
-        Err(e) => panic!("An error occured: {}", e),
-    };
-    date
-}
-
-/// Makes a pager to pass some output
-pub fn make_pager(output: &str) {
-    Pager::with_default_pager(read_config().pager).setup();
-    println!("{}", output);
 }
 
 /// Handles the processing of tags
@@ -499,9 +388,19 @@ pub fn handle_tags(
     }
     let tags = (tags_date.clone(), tags_val);
 
+    let (_w, _h) = match term_size::dimensions() {
+        Some((w, h)) => (w, h),
+        None => (100, 30),
+    };
     if args_tag == "food" {
-        if tags_food.len() >= 5 {
+        if read_config().when_pager == String::from("always") {
             make_pager(&format!("{}", make_food_table((tags_date, tags_food))));
+        } else if read_config().when_pager == String::from("default") {
+            if tags_food.len() >= 5 {
+                make_pager(&format!("{}", make_food_table((tags_date, tags_food))));
+            } else {
+                println!("{}", make_food_table((tags_date, tags_food)));
+            }
         } else {
             println!("{}", make_food_table((tags_date, tags_food)));
         }
@@ -522,10 +421,16 @@ pub fn handle_tags(
                     args_tag_year
                 );
             }
-        } else if tags.0.len() <= 10 {
-            println!("{}", make_tags_table(tags));
-        } else {
+        } else if read_config().when_pager == String::from("always") {
             make_pager(&format!("{}", make_tags_table(tags)));
+        } else if read_config().when_pager == String::from("default") {
+            if tags.0.len() >= 5 {
+                make_pager(&format!("{}", make_tags_table(tags)));
+            } else {
+                println!("{}", make_tags_table(tags));
+            }
+        } else {
+            println!("{}", make_tags_table(tags));
         }
     }
 }
@@ -605,8 +510,13 @@ pub fn gen_report(year: i32, month: u32) {
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec!["Tag".green(), "Frequency".green()]);
+    let mut no_of_rows = 0;
     for (key, value) in sorted.iter().rev() {
         table.add_row(vec![key.to_owned().to_owned(), value.to_string()]);
+        no_of_rows += 1;
+        if no_of_rows >= read_config().max_rows {
+            break;
+        }
     }
     println!("{}", table);
 }
@@ -666,8 +576,13 @@ pub fn gen_report_year(year: i32) {
         .apply_modifier(UTF8_ROUND_CORNERS)
         .set_content_arrangement(ContentArrangement::Dynamic)
         .set_header(vec!["Tag".green(), "Frequency".green()]);
+    let mut no_of_rows = 0;
     for (key, value) in final_tags.iter().rev() {
         table.add_row(vec![key.to_owned().to_owned(), value.to_string()]);
+        no_of_rows += 1;
+        if no_of_rows >= read_config().max_rows {
+            break;
+        }
     }
 
     println!(
@@ -692,24 +607,4 @@ pub fn gen_report_year(year: i32) {
     println!("");
     println!("{}", "Most used tags:".yellow().underline());
     println!("{}", table);
-}
-
-pub fn read_config() -> Config {
-    let contents_result = fs::read_to_string("jrnl/config.toml");
-    let mut config: Config = default_conf();
-    let mut set_default = false;
-    let contents = match contents_result {
-        Ok(data) => data,
-        Err(e) => match e.kind() {
-            ErrorKind::NotFound => {
-                set_default = true;
-                "".to_string()
-            }
-            e => panic!("An error: {}", e),
-        },
-    };
-    if !set_default {
-        config = toml::from_str(&contents).unwrap();
-    }
-    config
 }

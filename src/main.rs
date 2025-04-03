@@ -1,4 +1,13 @@
+/* TODO:
+ * [ ] Print calendar with tags and/or gen-report
+ * [ ] Add relevant normal and doc comments.
+ * [ ] Add error handling when wrong config is provided
+ * [ ] Add Comments in jrnl/config.toml
+ * [ ] Fix food tag not displaying when only provided with year
+ * [ ] Show order of months properly when gen-report, and not randomly.
+*/
 // Author: Tejas Gudgunti
+use crate::funcs::inquire_date;
 use crate::utils::*;
 use chrono::{DateTime, Datelike, Local};
 use clap::Parser;
@@ -26,7 +35,8 @@ struct Cli {
     /// Provide the date as YYYY-MM-DD, to open the relevant entry in helix-editor.
     ///
     /// A feature to be able to edit any given entry at any time, provided it exists. If it doesn't exist,
-    /// the program will exit. Opens the exact line number of the entry as well. Works only with Helix-Editor.
+    /// the program will exit. Opens the exact line number if the editor is Helix-editor. Editor can be
+    /// configured in the `jrnl/config.toml` as `editor=<executable name>`
     #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1)]
     open_entry: Option<String>,
 
@@ -38,7 +48,7 @@ struct Cli {
     /// If a year `--year` or `-y` is passed along with this, but without a month, all files within that year
     /// will be recursively searched for the tag specified.
     /// If both year and month are provided, that exact file will be searched.
-    /// Supports a pager `bat` when the number of rows in the table exceeds 10. \n
+    /// Supports a pager (configurable, defaults to `less`) when the number of rows in the table exceeds 10.
     /// A special tag is `[food]`, which when passed, makes a different table. Check the README
     #[arg(short, long, group = "get_tags")]
     tag: Option<String>,
@@ -47,14 +57,16 @@ struct Cli {
     ///
     /// Used in both `--tag` and `--gen-report`. Accepts a year YYYY to pass to either `--tag` or `--gen-report`.
     /// If any error of the year, it defaults to the current year.
-    #[arg(short, long, requires = "get_tags")]
+    // Note that we always provide Some(&str) for the default_missing_value, it automatically
+    // adjusts the value
+    #[arg(short, long, requires = "get_tags", default_missing_value=Some("0"), num_args=0..=1)]
     year: Option<i32>,
 
     /// Provide the month(MM) to search for the tag in, or to generate a report
     ///
     /// Used in both `--tag` and `--gen-report`. Accepts a month MM to pass to either `--tag` or `--gen-report`.
     /// If any error of the month, it defaults to the current month.
-    #[arg(short, long, requires = "get_tags")]
+    #[arg(short, long, requires = "get_tags", default_missing_value=Some("0"), num_args=0..=1)]
     month: Option<u32>,
 
     /// Generate a report about a given month's file; Defaults to current month's file.
@@ -100,6 +112,9 @@ fn main() {
             year_provided = false;
             today.year()
         }
+        // If we just pass `-y` with no <year> provided, we take the current year,
+        // but we have provided the year, so year_provided=true.
+        Some(0) => today.year(),
         Some(year) => year,
     };
     let args_tag_month = match args.month {
@@ -107,6 +122,7 @@ fn main() {
             month_provided = false;
             today.month()
         }
+        Some(0) => today.month(),
         Some(month) => month,
     };
 
