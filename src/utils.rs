@@ -1,7 +1,11 @@
 use crate::utils::funcs::*;
 use chrono::{DateTime, Datelike, Local, NaiveDate, format::ParseErrorKind};
 use colored::Colorize;
-use comfy_table::{ContentArrangement, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
+use comfy_table::{
+    ContentArrangement, Table,
+    modifiers::UTF8_ROUND_CORNERS,
+    presets::{NOTHING, UTF8_FULL},
+};
 use serde::Deserialize;
 use std::{
     collections::HashMap,
@@ -119,7 +123,10 @@ pub fn get_entry(date: NaiveDate) -> String {
         Err(e) => match e.kind() {
             // If the file is not found, say that it doesn't exist, instead of panicking.
             ErrorKind::NotFound => {
-                entry.push_str(&format!("Entry does not exist for {}", entry_date));
+                entry.push_str(&format!(
+                    "{}",
+                    format!("Entry does not exist for {}", entry_date).red()
+                ));
                 return entry;
             }
             other => panic!("Error opening file: {other}"),
@@ -179,7 +186,10 @@ pub fn get_entry(date: NaiveDate) -> String {
     }
 
     if entry == "" {
-        entry.push_str(&format!("Entry does not exist for {}", entry_date));
+        entry.push_str(&format!(
+            "{}",
+            format!("Entry does not exist for {}", entry_date).red()
+        ));
     }
     entry
 }
@@ -228,7 +238,7 @@ pub fn get_tags_from_file(filename: &str) -> Vec<String> {
 /// Returns all records with the tag in the given file.
 /// Provides the date of the tag as well
 /// Returns (date, entry)
-pub fn search_for_tags(tag: &str, date: NaiveDate) -> (Vec<String>, Vec<String>) {
+pub fn search_for_tags(tag: &str, date: NaiveDate, search: bool) -> (Vec<String>, Vec<String>) {
     let filename: String = format!(
         "jrnl/{}/{}_{}.md",
         date.year(),
@@ -277,7 +287,7 @@ pub fn search_for_tags(tag: &str, date: NaiveDate) -> (Vec<String>, Vec<String>)
             entry_date_title = cur_line.clone()[1..].trim().to_string();
         }
 
-        if cur_line.contains(&format!("[{}]", tag)) {
+        if cur_line.contains(&format!("[{}]", tag)) && !search {
             let line_to_push = cur_line
                 .replace(&format!("[{}]", tag), &format!("[{}]", tag.cyan()))
                 .replace("- ", "")
@@ -285,6 +295,23 @@ pub fn search_for_tags(tag: &str, date: NaiveDate) -> (Vec<String>, Vec<String>)
                 .to_string();
             tagged_entries.push(line_to_push);
             tagged_entry_dates.push(entry_date_title.clone());
+        }
+
+        let words: Vec<&str> = cur_line
+            .split(&[' ', '(', ')', ',', '.', ';'][..])
+            .collect();
+        let mut line_over = false;
+        for word in words {
+            if word.to_lowercase() == tag.to_lowercase() && search && !line_over {
+                line_over = true;
+                let line_to_push = cur_line
+                    .replace(word, &format!("{}", word.purple()))
+                    .replace("- ", "")
+                    .trim()
+                    .to_string();
+                tagged_entries.push(line_to_push);
+                tagged_entry_dates.push(entry_date_title.clone());
+            }
         }
     }
     (tagged_entry_dates, tagged_entries)
@@ -328,6 +355,7 @@ pub fn handle_tags(
     args_tag_month: u32,
     year_provided: bool,
     month_provided: bool,
+    search: bool,
 ) {
     let today: DateTime<Local> = Local::now(); //Get `now` time
     let given_date_result = NaiveDate::from_ymd_opt(args_tag_year, args_tag_month, 1);
@@ -368,12 +396,12 @@ pub fn handle_tags(
             let date =
                 NaiveDate::from_ymd_opt(parts[2].parse().unwrap(), parts[3].parse().unwrap(), 1)
                     .unwrap_or(today.date_naive());
-            let tags_from_file = search_for_tags(args_tag, date);
+            let tags_from_file = search_for_tags(args_tag, date, search);
             tags_date.extend(tags_from_file.0);
             tags_val.extend(tags_from_file.1);
         }
     } else {
-        let tags_temp = search_for_tags(args_tag, given_date);
+        let tags_temp = search_for_tags(args_tag, given_date, search);
         tags_date.extend(tags_temp.0);
         if args_tag == "food" {
             for item in tags_temp.1.clone().iter() {
@@ -388,11 +416,36 @@ pub fn handle_tags(
     }
     let tags = (tags_date.clone(), tags_val);
 
+    let mut days_vec = Vec::new();
+    let mut ydays_vec = Vec::new();
+    let mut month_days: HashMap<u32, Vec<u32>> = HashMap::new();
+    for date in tags_date.clone() {
+        if date != "" {
+            let day: u32 = date.split('-').collect::<Vec<&str>>()[2]
+                .parse::<u32>()
+                .unwrap_or(0);
+            let month: u32 = date.split('-').collect::<Vec<&str>>()[1]
+                .parse::<u32>()
+                .unwrap_or(0);
+            days_vec.push(day);
+            if year_provided && !month_provided {
+                ydays_vec.push((month, day));
+            }
+        }
+    }
+
     let (_w, _h) = match term_size::dimensions() {
         Some((w, h)) => (w, h),
         None => (100, 30),
     };
     if args_tag == "food" {
+        if year_provided && !month_provided {
+            println!(
+                "{}",
+                "This will fill up your terminal. Check month-wise instead.".red()
+            );
+            process::exit(1);
+        }
         if read_config().when_pager == String::from("always") {
             make_pager(&format!("{}", make_food_table((tags_date, tags_food))));
         } else if read_config().when_pager == String::from("default") {
@@ -408,19 +461,37 @@ pub fn handle_tags(
         if tags.0.len() == 0 {
             // Other 3 cases included in the else clause.
             if year_provided && !month_provided {
-                println!(
-                    "No matches for the tag '{}' found in {}",
-                    args_tag.cyan(),
-                    args_tag_year
-                );
+                if search {
+                    println!(
+                        "No matches for {} found in {}",
+                        args_tag.purple(),
+                        args_tag_year
+                    );
+                } else {
+                    println!(
+                        "No matches for the tag '{}' found in {}",
+                        args_tag.cyan(),
+                        args_tag_year
+                    );
+                }
             } else {
-                println!(
-                    "No matches for the tag '{}' found in {}, {}",
-                    args_tag.cyan(),
-                    month_no_to_name(args_tag_month),
-                    args_tag_year
-                );
+                if search {
+                    println!(
+                        "No matches for '{}' found in {}, {}",
+                        args_tag.purple(),
+                        month_no_to_name(args_tag_month),
+                        args_tag_year
+                    );
+                } else {
+                    println!(
+                        "No matches for the tag '{}' found in {}, {}",
+                        args_tag.cyan(),
+                        month_no_to_name(args_tag_month),
+                        args_tag_year
+                    );
+                }
             }
+            process::exit(1);
         } else if read_config().when_pager == String::from("always") {
             make_pager(&format!("{}", make_tags_table(tags)));
         } else if read_config().when_pager == String::from("default") {
@@ -432,6 +503,40 @@ pub fn handle_tags(
         } else {
             println!("{}", make_tags_table(tags));
         }
+    }
+    if year_provided && !month_provided {
+        let mut calendar = Vec::new();
+        for (month, day) in ydays_vec {
+            month_days.entry(month).or_insert_with(Vec::new).push(day);
+        }
+        for (month, days) in month_days {
+            calendar.push((month, print_calendar(args_tag_year, month, days)));
+        }
+        let mut cal = Table::new();
+        // Width to get the number of columns to push to the table when
+        // making the calendar grid
+        let (w, _h) = match term_size::dimensions() {
+            Some((w, h)) => (w, h),
+            None => (100, 30),
+        };
+        let w = w / 23; // Each calendar takes 23 chars
+        cal.set_content_arrangement(ContentArrangement::Dynamic)
+            .load_preset(NOTHING);
+
+        let mut cal_str: Vec<String> = Vec::new();
+        for (_, item) in calendar {
+            cal_str.push(item);
+        }
+        let chunks: Vec<&[String]> = cal_str.chunks(w).collect();
+        for item in chunks {
+            cal.add_row(item);
+        }
+        println!("{}", cal);
+    } else {
+        println!(
+            "{}",
+            print_calendar(args_tag_year, args_tag_month, days_vec)
+        );
     }
 }
 
@@ -474,7 +579,7 @@ pub fn open_editor(entry_date: String) {
 /// Generates a report for a month.
 pub fn gen_report(year: i32, month: u32) {
     let filename = format!("jrnl/{}/{}_{}.md", year, year, correct_month_nums(month));
-    let (_, no_of_entries) = get_headings(&filename);
+    let (headings, no_of_entries) = get_headings(&filename);
     println!(
         "{}",
         format!("Report for {}, {}\n", month_no_to_name(month), year)
@@ -491,6 +596,13 @@ pub fn gen_report(year: i32, month: u32) {
         )
         .yellow()
     );
+
+    let mut dates: Vec<u32> = Vec::new();
+    for heading in headings {
+        let parts: Vec<&str> = heading.split('-').collect();
+        dates.push(parts[2].to_string().parse::<u32>().unwrap_or(0));
+    }
+    println!("{}", print_calendar(year, month, dates));
 
     // Most used tags
     println!("{}", "Most used tags:".yellow().underline());
@@ -541,7 +653,10 @@ pub fn gen_report_year(year: i32) {
 
     let mut total_entries = 0;
     let mut final_tags: Vec<(String, u32)> = Vec::new();
-    let mut monthly_entries: HashMap<String, u32> = HashMap::new();
+    let mut monthly_entries: HashMap<u32, u32> = HashMap::new();
+    let mut monthly_entries_vec: Vec<(u32, u32)> = Vec::new();
+    let mut calendar: Vec<(u32, String)> = Vec::new();
+    let mut freq_map: HashMap<String, u32> = HashMap::new();
     for path in paths {
         let name = path.unwrap().path().display().to_string();
         let parts: Vec<&str> = name.split(&['/', '_', '.'][..]).collect();
@@ -549,26 +664,31 @@ pub fn gen_report_year(year: i32) {
 
         // Stuff
         let filename = format!("jrnl/{}/{}_{}.md", year, year, correct_month_nums(month));
-        let (_, curr_no_of_entries) = get_headings(&filename);
+        let (headings, curr_no_of_entries) = get_headings(&filename);
         total_entries += curr_no_of_entries.len();
 
-        monthly_entries.insert(
-            month_no_to_name(month),
-            curr_no_of_entries.len().try_into().unwrap(),
-        );
+        monthly_entries.insert(month, curr_no_of_entries.len().try_into().unwrap());
+        let mut dates: Vec<u32> = Vec::new();
+        for heading in headings {
+            let parts: Vec<&str> = heading.split('-').collect();
+            dates.push(parts[2].to_string().parse::<u32>().unwrap_or(0));
+        }
+        calendar.push((month, print_calendar(year, month, dates)));
 
         let file_tags = get_tags_from_file(&filename);
-        let mut freq_map: HashMap<String, u32> = HashMap::new();
         for item in file_tags.iter() {
             let count = freq_map.entry(item.to_string()).or_insert(0);
             *count += 1;
         }
 
-        for (key, value) in freq_map {
-            final_tags.extend(vec![(key, value)]);
-        }
+        monthly_entries_vec.extend(vec![(month, curr_no_of_entries.len().try_into().unwrap())]);
+    }
+    for (key, value) in freq_map {
+        final_tags.extend(vec![(key, value)]);
     }
     final_tags.sort_by_key(|a| a.1);
+    monthly_entries_vec.sort_by_key(|a| a.0);
+    calendar.sort_by_key(|a| a.0);
 
     let mut table = Table::new();
     table
@@ -583,6 +703,26 @@ pub fn gen_report_year(year: i32) {
         if no_of_rows >= read_config().max_rows {
             break;
         }
+    }
+
+    let mut cal = Table::new();
+    // Width to get the number of columns to push to the table when
+    // making the calendar grid
+    let (w, _h) = match term_size::dimensions() {
+        Some((w, h)) => (w, h),
+        None => (100, 30),
+    };
+    let w = w / 23; // Each calendar takes 23 chars
+    cal.set_content_arrangement(ContentArrangement::Dynamic)
+        .load_preset(NOTHING);
+
+    let mut cal_str: Vec<String> = Vec::new();
+    for (_, item) in calendar {
+        cal_str.push(item);
+    }
+    let chunks: Vec<&[String]> = cal_str.chunks(w).collect();
+    for item in chunks {
+        cal.add_row(item);
     }
 
     println!(
@@ -600,11 +740,12 @@ pub fn gen_report_year(year: i32) {
         .underline()
     );
 
-    for (k, v) in monthly_entries {
-        println!("{} : {}", k, v);
+    for (k, v) in monthly_entries_vec {
+        println!("{}: {}", month_no_to_name(k), v);
     }
+    println!("\n{}", cal);
 
-    println!("");
+    println!();
     println!("{}", "Most used tags:".yellow().underline());
     println!("{}", table);
 }

@@ -70,6 +70,11 @@ pub fn make_tags_table(dates_values: (Vec<String>, Vec<String>)) -> Table {
     let (dates, values) = dates_values;
     let mut table = Table::new();
 
+    let (w, _h) = match term_size::dimensions() {
+        Some((w, h)) => (w, h),
+        None => (100, 30),
+    };
+    let w = w as f64 * (9.0 / 10.0);
     table
         .load_preset(UTF8_FULL)
         .apply_modifier(UTF8_ROUND_CORNERS)
@@ -81,6 +86,9 @@ pub fn make_tags_table(dates_values: (Vec<String>, Vec<String>)) -> Table {
                 table.add_row(vec![date, value]);
             }
         }
+    }
+    if table.width() >= Some(w.round() as u16) {
+        table.set_width(w.round() as u16);
     }
     table
 }
@@ -167,4 +175,44 @@ pub fn read_config() -> Config {
         }
     }
     config
+}
+
+pub fn print_calendar(year: i32, month: u32, highlight_day: Vec<u32>) -> String {
+    let mut output = String::new();
+
+    let first_day = NaiveDate::from_ymd_opt(year, month, 1).unwrap();
+    let last_day = first_day
+        .with_day(1)
+        .unwrap()
+        .with_month(month + 1)
+        .unwrap()
+        .pred_opt()
+        .unwrap();
+
+    // Print the month and year
+    output.push_str(&format!(
+        "     {} {}\n",
+        month_no_to_name(month).cyan().bold().underline(),
+        year.to_string().cyan().bold().underline()
+    ));
+    output.push_str(&format!("{}", "Mo Tu We Th Fr Sa Su\n".bright_yellow()));
+
+    // Print leading spaces for the first day of the month
+    let first_weekday = first_day.weekday().num_days_from_monday(); // Change to start from Monday
+    for _ in 0..first_weekday {
+        output.push_str(&format!("   "));
+    }
+    // Print the days of the month
+    for day in first_day.day()..=last_day.day() {
+        if highlight_day.contains(&day) {
+            output.push_str(&format!("{:>2} ", day.to_string().green().bold())); // Highlight the specified day 
+        } else {
+            output.push_str(&format!("{:>2} ", day));
+        }
+        if (first_weekday + day as u32) % 7 == 0 {
+            output.push_str("\n");
+        }
+    }
+    output.push_str("\n"); // New line at the end
+    output
 }

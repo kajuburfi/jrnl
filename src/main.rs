@@ -1,10 +1,8 @@
 /* TODO:
- * [ ] Print calendar with tags and/or gen-report
  * [ ] Add relevant normal and doc comments.
  * [ ] Add error handling when wrong config is provided
  * [ ] Add Comments in jrnl/config.toml
- * [ ] Fix food tag not displaying when only provided with year
- * [ ] Show order of months properly when gen-report, and not randomly.
+ * [X] Add search functionality, since grep isn't useful enough
 */
 // Author: Tejas Gudgunti
 use crate::funcs::inquire_date;
@@ -29,7 +27,7 @@ struct Cli {
     /// which has the current date as the default value.
     /// If provided with an incorrect or non-existant date, the date will be asked by
     /// the same procedure. Currently does NOT support paging.
-    #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1)]
+    #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1, group="main")]
     entry: Option<String>,
 
     /// Provide the date as YYYY-MM-DD, to open the relevant entry in helix-editor.
@@ -37,7 +35,7 @@ struct Cli {
     /// A feature to be able to edit any given entry at any time, provided it exists. If it doesn't exist,
     /// the program will exit. Opens the exact line number if the editor is Helix-editor. Editor can be
     /// configured in the `jrnl/config.toml` as `editor=<executable name>`
-    #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1)]
+    #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1, group="main")]
     open_entry: Option<String>,
 
     /// List all occurances of a tag in a given file; Defaults to current month's file.
@@ -50,8 +48,17 @@ struct Cli {
     /// If both year and month are provided, that exact file will be searched.
     /// Supports a pager (configurable, defaults to `less`) when the number of rows in the table exceeds 10.
     /// A special tag is `[food]`, which when passed, makes a different table. Check the README
-    #[arg(short, long, group = "get_tags")]
+    #[arg(short, long, group = "main")]
     tag: Option<String>,
+
+    /// Search for a given string in a file; Defaults to current month's file.
+    ///
+    /// Similar to `--tag`, this searches for the provided string. It is case-insensitive,
+    /// and searches for all matches not in the designated tag format(`[tag]`). Shows all results
+    /// with entry date as a table format similar to `--tag`. Only exact words are searched for.
+    /// Words are highlighted. Can provide `--year` and `--month` tags along with this.
+    #[arg(short, long, group = "main")]
+    search: Option<String>,
 
     /// Provide a year(YYYY) to search for a tag in, or to generate a report
     ///
@@ -59,14 +66,14 @@ struct Cli {
     /// If any error of the year, it defaults to the current year.
     // Note that we always provide Some(&str) for the default_missing_value, it automatically
     // adjusts the value
-    #[arg(short, long, requires = "get_tags", default_missing_value=Some("0"), num_args=0..=1)]
+    #[arg(short, long, requires = "main", default_missing_value=Some("0"), num_args=0..=1)]
     year: Option<i32>,
 
     /// Provide the month(MM) to search for the tag in, or to generate a report
     ///
     /// Used in both `--tag` and `--gen-report`. Accepts a month MM to pass to either `--tag` or `--gen-report`.
     /// If any error of the month, it defaults to the current month.
-    #[arg(short, long, requires = "get_tags", default_missing_value=Some("0"), num_args=0..=1)]
+    #[arg(short, long, requires = "main", default_missing_value=Some("0"), num_args=0..=1)]
     month: Option<u32>,
 
     /// Generate a report about a given month's file; Defaults to current month's file.
@@ -75,7 +82,7 @@ struct Cli {
     /// Shows the number of entries in the month, and the most used tags along with their frequency in
     /// a table format.
     /// Can provide the month or year to generate the report of, using `--year`(`-y`) or `--month`(`-m`) flags.
-    #[arg(long, group = "get_tags")]
+    #[arg(long, group = "main")]
     gen_report: bool,
 }
 
@@ -107,6 +114,10 @@ fn main() {
         None => "",
         Some(a) => &a,
     };
+    let args_search = match args.search.as_deref() {
+        None => "",
+        Some(a) => &a,
+    };
     let args_tag_year = match args.year {
         None => {
             year_provided = false;
@@ -127,27 +138,33 @@ fn main() {
     };
 
     // Handle arguments - not very efficiently or idiomatically
-    if args_tag != "" && args_entry == "" && args_open_entry == "" {
+    if args_tag != "" {
         handle_tags(
             args_tag,
             args_tag_year,
             args_tag_month,
             year_provided,
             month_provided,
+            false,
+        );
+    }
+    if args_search != "" {
+        handle_tags(
+            args_search,
+            args_tag_year,
+            args_tag_month,
+            year_provided,
+            month_provided,
+            true,
         );
     }
 
-    if args_entry != "" && args_tag == "" && args_open_entry == "" {
+    if args_entry != "" {
         let entry = get_entry(parse_entry_args(args_entry));
         println!("{}", entry);
     }
 
-    if args_tag == "" && args_entry == "" && args_open_entry == "" && !args.gen_report {
-        let today_date = today.format("%Y-%m-%d").to_string();
-        open_editor(today_date);
-    }
-
-    if args_open_entry != "" && args_tag == "" && args_entry == "" {
+    if args_open_entry != "" {
         let entry_date_naive = parse_entry_args(args_open_entry);
         let entry_date = entry_date_naive.format("%Y-%m-%d").to_string();
         if get_entry(entry_date_naive) == format!("Entry does not exist for {}", entry_date) {
@@ -162,10 +179,19 @@ fn main() {
 
     if args.gen_report {
         if year_provided && !month_provided {
-            // TODO: implement this
             gen_report_year(args_tag_year);
         } else {
             gen_report(args_tag_year, args_tag_month);
         }
+    }
+
+    if args_tag == ""
+        && args_entry == ""
+        && args_open_entry == ""
+        && !args.gen_report
+        && args_search == ""
+    {
+        let today_date = today.format("%Y-%m-%d").to_string();
+        open_editor(today_date);
     }
 }
