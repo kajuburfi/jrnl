@@ -1,9 +1,12 @@
 /* TODO:
- * [ ] Add relevant normal and doc comments.
- * [ ] Add error handling when wrong config is provided
- * [ ] Add Comments in jrnl/config.toml
- * [X] Add search functionality, since grep isn't useful enough
-*/
+ * [X] Add relevant normal and doc comments.
+ * [X] Add error handling when wrong config is provided
+ * [X] Fix --open-entry when provided with old/new dates with no entries.
+ * [X] Check all cases of usage of expect/unwrap.
+ * [X] When using `-t tag -y`; print calendars chronoligically
+ * [X] Fix searching with `food`
+ * [ ] Add approximate string matching using stringmetrics
+ */
 // Author: Tejas Gudgunti
 use crate::funcs::inquire_date;
 use crate::utils::*;
@@ -11,6 +14,7 @@ use chrono::{DateTime, Datelike, Local};
 use clap::Parser;
 use colored::Colorize;
 use std::process;
+use utils::funcs::{check_file_existed, read_config};
 
 mod utils;
 
@@ -84,9 +88,24 @@ struct Cli {
     /// Can provide the month or year to generate the report of, using `--year`(`-y`) or `--month`(`-m`) flags.
     #[arg(long, group = "main")]
     gen_report: bool,
+
+    /// Opens the respective configuration file: ./jrnl/config.toml
+    #[arg(long, group = "main")]
+    open_config: bool,
 }
 
 fn main() {
+    // First check if config is right
+    if read_config().1 != String::new() {
+        println!(
+            "{}",
+            format!("Configuration Error: {}", read_config().1.bold()).red()
+        );
+        println!("{}", "Help: ".bold().green());
+        println!("Note that all fields must be present in the toml file.");
+        println!("Continuing with default configuration.");
+    }
+
     let today: DateTime<Local> = Local::now(); //Get `now` time
 
     // Some variables to figure out whether both month and year were
@@ -167,7 +186,12 @@ fn main() {
     if args_open_entry != "" {
         let entry_date_naive = parse_entry_args(args_open_entry);
         let entry_date = entry_date_naive.format("%Y-%m-%d").to_string();
-        if get_entry(entry_date_naive) == format!("Entry does not exist for {}", entry_date) {
+        if get_entry(entry_date_naive)
+            == format!(
+                "{}",
+                format!("Entry does not exist for {}", entry_date).red()
+            )
+        {
             println!(
                 "{}",
                 format!("Entry does not exist for {}", entry_date).red()
@@ -185,10 +209,21 @@ fn main() {
         }
     }
 
+    if args.open_config {
+        if !check_file_existed("jrnl/config.toml") {
+            println!("Made config file: jrnl/config.toml");
+        }
+        process::Command::new(read_config().0.editor)
+            .arg("jrnl/config.toml")
+            .status()
+            .expect("Failed to execute process");
+    }
+
     if args_tag == ""
         && args_entry == ""
         && args_open_entry == ""
         && !args.gen_report
+        && !args.open_config
         && args_search == ""
     {
         let today_date = today.format("%Y-%m-%d").to_string();

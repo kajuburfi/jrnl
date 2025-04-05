@@ -19,13 +19,13 @@ pub mod funcs;
 
 #[derive(Deserialize)]
 pub struct Config {
-    add_weekday: bool,
-    add_food_column: bool,
-    editor: String,
-    pager: String,
-    max_rows: u32,
-    add_timestamp: bool,
-    when_pager: String,
+    pub add_weekday: bool,
+    pub add_food_column: bool,
+    pub editor: String,
+    pub pager: String,
+    pub max_rows: u32,
+    pub add_timestamp: bool,
+    pub when_pager: String,
 }
 
 /// Returns all headings(<h1>) and their corresponding line numbers
@@ -83,7 +83,7 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
         .unwrap();
     let (headings, _) = get_headings(filename);
 
-    let config = read_config();
+    let config = read_config().0;
     let mut input_str = String::new();
     if config.add_weekday {
         input_str.push_str(&format!("\n### {}", &weekday));
@@ -98,7 +98,11 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
 
     // If `headings` doesn't contain today's date, then append it to the file.
     if !headings.contains(&format!("# {}", &date)) {
-        file_data.write(input_str.as_bytes()).expect("Write failed");
+        let write_result = file_data.write(input_str.as_bytes());
+        match write_result {
+            Ok(_) => (),
+            Err(e) => panic!("An error: {}", e),
+        }
     }
     Ok(())
 }
@@ -153,7 +157,7 @@ pub fn get_entry(date: NaiveDate) -> String {
         }
         if cur_line.contains(&entry_date) {
             reached_date_yet = true;
-            if read_config().add_weekday {
+            if read_config().0.add_weekday {
                 entry.push_str(&format!(
                     "{} ({})\n",
                     cur_line.replace("#", "").trim().bold().yellow().underline(),
@@ -297,8 +301,18 @@ pub fn search_for_tags(tag: &str, date: NaiveDate, search: bool) -> (Vec<String>
             tagged_entry_dates.push(entry_date_title.clone());
         }
 
+        if cur_line.contains(&format!("[{}]", tag)) && search {
+            println!("{}:", "Help".green().bold());
+            println!(
+                "There exists a {} with a similar name: {}",
+                "tag".underline().red(),
+                tag.bright_yellow().bold()
+            );
+            println!("Perhaps you meant to get the tag?");
+        }
+
         let words: Vec<&str> = cur_line
-            .split(&[' ', '(', ')', ',', '.', ';'][..])
+            .split(&[' ', '(', ')', ',', '.', ';', '-'][..])
             .collect();
         let mut line_over = false;
         for word in words {
@@ -438,7 +452,51 @@ pub fn handle_tags(
         Some((w, h)) => (w, h),
         None => (100, 30),
     };
+
+    if tags.0.len() == 0 {
+        // Other 3 cases included in the else clause.
+        if year_provided && !month_provided {
+            if search {
+                println!(
+                    "No matches for '{}' found in {}",
+                    args_tag.purple(),
+                    args_tag_year
+                );
+            } else {
+                println!(
+                    "No matches for the tag '{}' found in {}",
+                    args_tag.cyan(),
+                    args_tag_year
+                );
+            }
+        } else {
+            if search {
+                println!(
+                    "No matches for '{}' found in {}, {}",
+                    args_tag.purple(),
+                    month_no_to_name(args_tag_month),
+                    args_tag_year
+                );
+            } else {
+                println!(
+                    "No matches for the tag '{}' found in {}, {}",
+                    args_tag.cyan(),
+                    month_no_to_name(args_tag_month),
+                    args_tag_year
+                );
+            }
+        }
+        process::exit(1);
+    }
+
     if args_tag == "food" {
+        if search {
+            println!(
+                "Searching for {}? That doesn't seem right... \nTry the tag instead: `-t food`",
+                "food".purple()
+            );
+            process::exit(1);
+        }
         if year_provided && !month_provided {
             println!(
                 "{}",
@@ -446,9 +504,9 @@ pub fn handle_tags(
             );
             process::exit(1);
         }
-        if read_config().when_pager == String::from("always") {
+        if read_config().0.when_pager == String::from("always") {
             make_pager(&format!("{}", make_food_table((tags_date, tags_food))));
-        } else if read_config().when_pager == String::from("default") {
+        } else if read_config().0.when_pager == String::from("default") {
             if tags_food.len() >= 5 {
                 make_pager(&format!("{}", make_food_table((tags_date, tags_food))));
             } else {
@@ -458,43 +516,9 @@ pub fn handle_tags(
             println!("{}", make_food_table((tags_date, tags_food)));
         }
     } else {
-        if tags.0.len() == 0 {
-            // Other 3 cases included in the else clause.
-            if year_provided && !month_provided {
-                if search {
-                    println!(
-                        "No matches for {} found in {}",
-                        args_tag.purple(),
-                        args_tag_year
-                    );
-                } else {
-                    println!(
-                        "No matches for the tag '{}' found in {}",
-                        args_tag.cyan(),
-                        args_tag_year
-                    );
-                }
-            } else {
-                if search {
-                    println!(
-                        "No matches for '{}' found in {}, {}",
-                        args_tag.purple(),
-                        month_no_to_name(args_tag_month),
-                        args_tag_year
-                    );
-                } else {
-                    println!(
-                        "No matches for the tag '{}' found in {}, {}",
-                        args_tag.cyan(),
-                        month_no_to_name(args_tag_month),
-                        args_tag_year
-                    );
-                }
-            }
-            process::exit(1);
-        } else if read_config().when_pager == String::from("always") {
+        if read_config().0.when_pager == String::from("always") {
             make_pager(&format!("{}", make_tags_table(tags)));
-        } else if read_config().when_pager == String::from("default") {
+        } else if read_config().0.when_pager == String::from("default") {
             if tags.0.len() >= 5 {
                 make_pager(&format!("{}", make_tags_table(tags)));
             } else {
@@ -504,6 +528,7 @@ pub fn handle_tags(
             println!("{}", make_tags_table(tags));
         }
     }
+
     if year_provided && !month_provided {
         let mut calendar = Vec::new();
         for (month, day) in ydays_vec {
@@ -512,6 +537,7 @@ pub fn handle_tags(
         for (month, days) in month_days {
             calendar.push((month, print_calendar(args_tag_year, month, days)));
         }
+        calendar.sort_by_key(|s| s.0);
         let mut cal = Table::new();
         // Width to get the number of columns to push to the table when
         // making the calendar grid
@@ -561,12 +587,12 @@ pub fn open_editor(entry_date: String) {
         for (j, no) in corr_line_no.iter().enumerate() {
             if i == j && head[1..].trim() == entry_date {
                 let cmd_arg: String;
-                if read_config().editor == "hx" {
+                if read_config().0.editor == "hx" {
                     cmd_arg = format!("{}:{}", filename, no);
                 } else {
                     cmd_arg = format!("{}", filename);
                 }
-                process::Command::new(read_config().editor)
+                process::Command::new(read_config().0.editor)
                     .arg(cmd_arg)
                     .status()
                     .expect("Failed to execute process");
@@ -626,7 +652,7 @@ pub fn gen_report(year: i32, month: u32) {
     for (key, value) in sorted.iter().rev() {
         table.add_row(vec![key.to_owned().to_owned(), value.to_string()]);
         no_of_rows += 1;
-        if no_of_rows >= read_config().max_rows {
+        if no_of_rows >= read_config().0.max_rows {
             break;
         }
     }
@@ -700,7 +726,7 @@ pub fn gen_report_year(year: i32) {
     for (key, value) in final_tags.iter().rev() {
         table.add_row(vec![key.to_owned().to_owned(), value.to_string()]);
         no_of_rows += 1;
-        if no_of_rows >= read_config().max_rows {
+        if no_of_rows >= read_config().0.max_rows {
             break;
         }
     }

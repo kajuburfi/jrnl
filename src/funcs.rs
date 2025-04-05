@@ -31,8 +31,24 @@ pub fn check_file_existed(filename: &str) -> bool {
     let path: &Path = Path::new(filename);
 
     if !path.exists() {
-        File::create_new(filename.to_string()).expect("Could not make new file.");
-        false
+        let file_result = File::create_new(filename.to_string());
+        match file_result {
+            Ok(_) => false,
+            Err(e) => match e.kind() {
+                ErrorKind::NotFound => {
+                    eprintln!(
+                        "{}",
+                        format!(
+                            "There doesn't seem to be a folder for {}. Please create it.",
+                            filename
+                        )
+                        .red(),
+                    );
+                    process::exit(1);
+                }
+                err => panic!("An error: {}", err),
+            },
+        }
     } else {
         true
     }
@@ -142,11 +158,11 @@ pub fn inquire_date() -> NaiveDate {
 
 /// Makes a pager to pass some output
 pub fn make_pager(output: &str) {
-    Pager::with_default_pager(read_config().pager).setup();
+    Pager::with_default_pager(read_config().0.pager).setup();
     println!("{}", output);
 }
 
-pub fn read_config() -> Config {
+pub fn read_config() -> (Config, String) {
     let contents_result = fs::read_to_string("jrnl/config.toml");
     let mut config: Config = default_conf();
     let mut set_default = false;
@@ -164,17 +180,14 @@ pub fn read_config() -> Config {
         let config_result = toml::from_str(&contents);
         config = match config_result {
             Ok(config) => config,
-            Err(_) => {
+            Err(e) => {
                 //Only one possible type of error
                 // TODO: Fix
-                // println!("Configuration Error: {}", e.message());
-                // println!("Note that all fields must be present in the toml file.");
-                // println!("\nContinuing with default configuration.");
-                default_conf()
+                return (default_conf(), e.message().to_string());
             }
         }
     }
-    config
+    (config, String::new())
 }
 
 pub fn print_calendar(year: i32, month: u32, highlight_day: Vec<u32>) -> String {
