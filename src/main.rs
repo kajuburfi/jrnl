@@ -1,11 +1,9 @@
 /* TODO:
- * [X] Add relevant normal and doc comments.
- * [X] Add error handling when wrong config is provided
- * [X] Fix --open-entry when provided with old/new dates with no entries.
- * [X] Check all cases of usage of expect/unwrap.
- * [X] When using `-t tag -y`; print calendars chronoligically
- * [X] Fix searching with `food`
- * [ ] Add approximate string matching using stringmetrics
+ * [X] Add approximate string matching using stringmetrics
+ * [X] Add approximate .. for searches with another tag
+ * [X] Add searches for tag + ed, d, s, es, etc.
+ * [X] Fix multiple words not giving search result.
+ * [ ] Add feature to convert to md???
  */
 // Author: Tejas Gudgunti
 use crate::funcs::inquire_date;
@@ -13,7 +11,7 @@ use crate::utils::*;
 use chrono::{DateTime, Datelike, Local};
 use clap::Parser;
 use colored::Colorize;
-use std::process;
+use std::{path::Path, process};
 use utils::funcs::{check_file_existed, read_config};
 
 mod utils;
@@ -52,7 +50,7 @@ struct Cli {
     /// If both year and month are provided, that exact file will be searched.
     /// Supports a pager (configurable, defaults to `less`) when the number of rows in the table exceeds 10.
     /// A special tag is `[food]`, which when passed, makes a different table. Check the README
-    #[arg(short, long, group = "main")]
+    #[arg(short, long, groups = ["main", "tag_rep"])]
     tag: Option<String>,
 
     /// Search for a given string in a file; Defaults to current month's file.
@@ -61,7 +59,7 @@ struct Cli {
     /// and searches for all matches not in the designated tag format(`[tag]`). Shows all results
     /// with entry date as a table format similar to `--tag`. Only exact words are searched for.
     /// Words are highlighted. Can provide `--year` and `--month` tags along with this.
-    #[arg(short, long, group = "main")]
+    #[arg(short, long, groups = ["main", "searching", "tag_rep"])]
     search: Option<String>,
 
     /// Provide a year(YYYY) to search for a tag in, or to generate a report
@@ -70,14 +68,14 @@ struct Cli {
     /// If any error of the year, it defaults to the current year.
     // Note that we always provide Some(&str) for the default_missing_value, it automatically
     // adjusts the value
-    #[arg(short, long, requires = "main", default_missing_value=Some("0"), num_args=0..=1)]
+    #[arg(short, long, requires = "tag_rep", default_missing_value=Some("0"), num_args=0..=1)]
     year: Option<i32>,
 
     /// Provide the month(MM) to search for the tag in, or to generate a report
     ///
     /// Used in both `--tag` and `--gen-report`. Accepts a month MM to pass to either `--tag` or `--gen-report`.
     /// If any error of the month, it defaults to the current month.
-    #[arg(short, long, requires = "main", default_missing_value=Some("0"), num_args=0..=1)]
+    #[arg(short, long, requires = "tag_rep", default_missing_value=Some("0"), num_args=0..=1)]
     month: Option<u32>,
 
     /// Generate a report about a given month's file; Defaults to current month's file.
@@ -86,16 +84,26 @@ struct Cli {
     /// Shows the number of entries in the month, and the most used tags along with their frequency in
     /// a table format.
     /// Can provide the month or year to generate the report of, using `--year`(`-y`) or `--month`(`-m`) flags.
-    #[arg(long, group = "main")]
+    #[arg(long, groups = ["main", "tag_rep"])]
     gen_report: bool,
 
     /// Opens the respective configuration file: ./jrnl/config.toml
     #[arg(long, group = "main")]
     open_config: bool,
+
+    /// Search for similar words as well, along with the current word.
+    #[arg(short, long, requires = "searching")]
+    approx: bool,
 }
 
 fn main() {
     // First check if config is right
+    if !Path::new("jrnl/config.toml").exists() {
+        println!(
+            "{}: No configuration file found. Continuing with default config.\n",
+            "WARNING".yellow().bold()
+        );
+    }
     if read_config().1 != String::new() {
         println!(
             "{}",
@@ -165,6 +173,7 @@ fn main() {
             year_provided,
             month_provided,
             false,
+            false,
         );
     }
     if args_search != "" {
@@ -175,6 +184,7 @@ fn main() {
             year_provided,
             month_provided,
             true,
+            args.approx,
         );
     }
 

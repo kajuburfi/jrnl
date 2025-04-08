@@ -13,6 +13,7 @@ use std::{
     io::{BufRead, BufReader, ErrorKind, Write},
     process,
 };
+use stringmetrics::levenshtein;
 
 #[path = "funcs.rs"]
 pub mod funcs;
@@ -88,8 +89,10 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
     if config.add_weekday {
         input_str.push_str(&format!("\n### {}", &weekday));
     }
-    if config.add_timestamp {
+    if config.add_timestamp && config.add_weekday {
         input_str.push_str(&format!(" ({})", &timestamp));
+    } else if config.add_timestamp && !config.add_weekday {
+        input_str.push_str(&format!("\n### ({})", &timestamp));
     }
     input_str.push_str(&format!("\n# {}", &date));
     if config.add_food_column {
@@ -242,7 +245,13 @@ pub fn get_tags_from_file(filename: &str) -> Vec<String> {
 /// Returns all records with the tag in the given file.
 /// Provides the date of the tag as well
 /// Returns (date, entry)
-pub fn search_for_tags(tag: &str, date: NaiveDate, search: bool) -> (Vec<String>, Vec<String>) {
+// By default, search for *tags*
+pub fn search_for_stuff(
+    word: &str,
+    date: NaiveDate,
+    search: bool,
+    approx: bool,
+) -> (Vec<String>, Vec<String>) {
     let filename: String = format!(
         "jrnl/{}/{}_{}.md",
         date.year(),
@@ -291,9 +300,9 @@ pub fn search_for_tags(tag: &str, date: NaiveDate, search: bool) -> (Vec<String>
             entry_date_title = cur_line.clone()[1..].trim().to_string();
         }
 
-        if cur_line.contains(&format!("[{}]", tag)) && !search {
+        if cur_line.contains(&format!("[{}]", word)) && !search {
             let line_to_push = cur_line
-                .replace(&format!("[{}]", tag), &format!("[{}]", tag.cyan()))
+                .replace(&format!("[{}]", word), &format!("[{}]", word.bright_cyan()))
                 .replace("- ", "")
                 .trim()
                 .to_string();
@@ -301,30 +310,72 @@ pub fn search_for_tags(tag: &str, date: NaiveDate, search: bool) -> (Vec<String>
             tagged_entry_dates.push(entry_date_title.clone());
         }
 
-        if cur_line.contains(&format!("[{}]", tag)) && search {
+        if cur_line.contains(&format!("[{}]", word)) && search {
+            println!("No matches for '{}' found in April, 2025", word.purple());
             println!("{}:", "Help".green().bold());
             println!(
                 "There exists a {} with a similar name: {}",
                 "tag".underline().red(),
-                tag.bright_yellow().bold()
+                word.bright_yellow().bold()
             );
             println!("Perhaps you meant to get the tag?");
+            process::exit(1);
         }
 
+        if word.contains(" ") && cur_line.clone().contains(word) {
+            let line_to_push = cur_line
+                .replace(word, &format!("{}", word.purple()))
+                .replace("- ", "")
+                .trim()
+                .to_string();
+            tagged_entries.push(line_to_push);
+            tagged_entry_dates.push(entry_date_title.clone());
+        }
         let words: Vec<&str> = cur_line
-            .split(&[' ', '(', ')', ',', '.', ';', '-'][..])
+            .split(&[' ', '(', ')', ',', '.', ';', '-', '|', '/'][..])
             .collect();
         let mut line_over = false;
-        for word in words {
-            if word.to_lowercase() == tag.to_lowercase() && search && !line_over {
-                line_over = true;
-                let line_to_push = cur_line
-                    .replace(word, &format!("{}", word.purple()))
-                    .replace("- ", "")
-                    .trim()
-                    .to_string();
-                tagged_entries.push(line_to_push);
-                tagged_entry_dates.push(entry_date_title.clone());
+        for thing in words {
+            if !approx {
+                if (thing.to_lowercase() == word.to_lowercase()
+                    || thing.to_lowercase() == word.to_lowercase() + "ed"
+                    || thing.to_lowercase() == word.to_lowercase() + "d"
+                    || thing.to_lowercase() == word.to_lowercase() + "es"
+                    || thing.to_lowercase() == word.to_lowercase() + "'s"
+                    || thing.to_lowercase() == word.to_lowercase() + "s")
+                    && search
+                    && !line_over
+                {
+                    line_over = true;
+                    let line_to_push = cur_line
+                        .replace(thing, &format!("{}", thing.purple()))
+                        .replace("- ", "")
+                        .trim()
+                        .to_string();
+                    tagged_entries.push(line_to_push);
+                    tagged_entry_dates.push(entry_date_title.clone());
+                }
+            } else {
+                if (thing.to_lowercase() == word.to_lowercase()
+                    || thing.to_lowercase() == word.to_lowercase() + "ed"
+                    || thing.to_lowercase() == word.to_lowercase() + "d"
+                    || thing.to_lowercase() == word.to_lowercase() + "es"
+                    || thing.to_lowercase() == word.to_lowercase() + "'s"
+                    || thing.to_lowercase() == word.to_lowercase() + "s")
+                    || (levenshtein(thing.to_lowercase().as_str(), word.to_lowercase().as_str())
+                        <= 1)
+                        && search
+                        && !line_over
+                {
+                    line_over = true;
+                    let line_to_push = cur_line
+                        .replace(thing, &format!("{}", thing.purple()))
+                        .replace("- ", "")
+                        .trim()
+                        .to_string();
+                    tagged_entries.push(line_to_push);
+                    tagged_entry_dates.push(entry_date_title.clone());
+                }
             }
         }
     }
@@ -370,6 +421,7 @@ pub fn handle_tags(
     year_provided: bool,
     month_provided: bool,
     search: bool,
+    approx: bool,
 ) {
     let today: DateTime<Local> = Local::now(); //Get `now` time
     let given_date_result = NaiveDate::from_ymd_opt(args_tag_year, args_tag_month, 1);
@@ -410,12 +462,12 @@ pub fn handle_tags(
             let date =
                 NaiveDate::from_ymd_opt(parts[2].parse().unwrap(), parts[3].parse().unwrap(), 1)
                     .unwrap_or(today.date_naive());
-            let tags_from_file = search_for_tags(args_tag, date, search);
+            let tags_from_file = search_for_stuff(args_tag, date, search, approx);
             tags_date.extend(tags_from_file.0);
             tags_val.extend(tags_from_file.1);
         }
     } else {
-        let tags_temp = search_for_tags(args_tag, given_date, search);
+        let tags_temp = search_for_stuff(args_tag, given_date, search, approx);
         tags_date.extend(tags_temp.0);
         if args_tag == "food" {
             for item in tags_temp.1.clone().iter() {

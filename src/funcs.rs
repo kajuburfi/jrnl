@@ -151,7 +151,13 @@ pub fn inquire_date() -> NaiveDate {
     let date_prompt = DateSelect::new("Select a date to search for its entry:").prompt();
     let date = match date_prompt {
         Ok(date) => date,
-        Err(e) => panic!("An error occured: {}", e),
+        Err(e) => match e {
+            inquire::InquireError::OperationCanceled => {
+                println!("{}", "Cancelling...".red());
+                process::exit(0);
+            }
+            _ => panic!("An error occured: {}", e),
+        },
     };
     date
 }
