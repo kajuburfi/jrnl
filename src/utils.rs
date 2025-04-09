@@ -302,7 +302,7 @@ pub fn search_for_stuff(
 
         if cur_line.contains(&format!("[{}]", word)) && !search {
             let line_to_push = cur_line
-                .replace(&format!("[{}]", word), &format!("[{}]", word.bright_cyan()))
+                .replace(&format!("[{}]", word), &format!("[{}]", word.cyan()))
                 .replace("- ", "")
                 .trim()
                 .to_string();
