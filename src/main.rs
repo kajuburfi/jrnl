@@ -1,9 +1,4 @@
 /* TODO:
- * [X] Add approximate string matching using stringmetrics
- * [X] Add approximate .. for searches with another tag
- * [X] Add searches for tag + ed, d, s, es, etc.
- * [X] Fix multiple words not giving search result.
- * [ ] Add feature to convert to md???
  */
 // Author: Tejas Gudgunti
 use crate::funcs::inquire_date;
@@ -11,6 +6,7 @@ use crate::utils::*;
 use chrono::{DateTime, Datelike, Local};
 use clap::Parser;
 use colored::Colorize;
+use shellexpand::tilde;
 use std::{path::Path, process};
 use utils::funcs::{check_file_existed, read_config};
 
@@ -94,11 +90,18 @@ struct Cli {
     /// Search for similar words as well, along with the current word.
     #[arg(short, long, requires = "searching")]
     approx: bool,
+
+    /// Provide a path to search for the directory `jrnl`.
+    ///
+    /// If provided with just `--path` and no argument for the flag, the default value
+    /// is set to the current directory
+    #[arg(short, long, default_missing_value=Some("."), num_args=0..=1)]
+    path: Option<String>,
 }
 
 fn main() {
     // First check if config is right
-    if !Path::new("jrnl/config.toml").exists() {
+    if !Path::new(&tilde("~/.config/jrnl/config.toml").into_owned()).exists() {
         println!(
             "{}: No configuration file found. Continuing with default config.\n",
             "WARNING".yellow().bold()
@@ -220,11 +223,11 @@ fn main() {
     }
 
     if args.open_config {
-        if !check_file_existed("jrnl/config.toml") {
-            println!("Made config file: jrnl/config.toml");
+        if !check_file_existed(&tilde("~/.config/jrnl/config.toml").into_owned()) {
+            println!("Made config file: ~/.config/jrnl/config.toml");
         }
         process::Command::new(read_config().0.editor)
-            .arg("jrnl/config.toml")
+            .arg(tilde("~/.config/jrnl/config.toml").into_owned())
             .status()
             .expect("Failed to execute process");
     }
@@ -238,5 +241,12 @@ fn main() {
     {
         let today_date = today.format("%Y-%m-%d").to_string();
         open_editor(today_date);
+    }
+}
+
+pub fn get_default_path() -> String {
+    match Cli::parse().path.as_deref() {
+        None => tilde(&read_config().0.default_path).into_owned(),
+        Some(a) => a.to_string(),
     }
 }

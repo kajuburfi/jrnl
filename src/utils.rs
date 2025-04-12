@@ -1,3 +1,4 @@
+use crate::get_default_path;
 use crate::utils::funcs::*;
 use chrono::{DateTime, Datelike, Local, NaiveDate, format::ParseErrorKind};
 use colored::Colorize;
@@ -18,7 +19,7 @@ use stringmetrics::levenshtein;
 #[path = "funcs.rs"]
 pub mod funcs;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Config {
     pub add_weekday: bool,
     pub add_food_column: bool,
@@ -27,6 +28,7 @@ pub struct Config {
     pub max_rows: u32,
     pub add_timestamp: bool,
     pub when_pager: String,
+    pub default_path: String,
 }
 
 /// Returns all headings(<h1>) and their corresponding line numbers
@@ -114,7 +116,8 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
 pub fn get_entry(date: NaiveDate) -> String {
     // Get the filename(pre-defined format) from the NaiveDate
     let filename: String = format!(
-        "jrnl/{}/{}_{}.md",
+        "{}/jrnl/{}/{}_{}.md",
+        get_default_path(),
         date.year(),
         date.year(),
         correct_month_nums(date.month())
@@ -253,7 +256,8 @@ pub fn search_for_stuff(
     approx: bool,
 ) -> (Vec<String>, Vec<String>) {
     let filename: String = format!(
-        "jrnl/{}/{}_{}.md",
+        "{}/jrnl/{}/{}_{}.md",
+        get_default_path(),
         date.year(),
         date.year(),
         correct_month_nums(date.month())
@@ -290,6 +294,10 @@ pub fn search_for_stuff(
                 "".to_string()
             }
         };
+        // If starting with a weekday, skip the line
+        if cur_line.clone().starts_with("### ") {
+            continue;
+        }
 
         if reached_date_yet && cur_line.starts_with("# ") {
             reached_date_yet = false;
@@ -322,10 +330,25 @@ pub fn search_for_stuff(
             process::exit(1);
         }
 
-        if word.contains(" ") && cur_line.clone().contains(word) {
+        // Searching within words or across words
+        if cur_line.clone().contains(word)
+            && search
+            && (cur_line
+                .clone()
+                .chars()
+                .nth(cur_line.clone().rfind(word).unwrap_or(0) - 1)
+                .unwrap_or(' ')
+                .is_alphanumeric()
+                || cur_line
+                    .clone()
+                    .chars()
+                    .nth(cur_line.clone().rfind(word).unwrap_or(0) + word.chars().count())
+                    .unwrap_or(' ')
+                    .is_alphanumeric())
+        {
             let line_to_push = cur_line
                 .replace(word, &format!("{}", word.purple()))
-                .replace("- ", "")
+                .replacen("- ", "", 1) // Only replace first `-`
                 .trim()
                 .to_string();
             tagged_entries.push(line_to_push);
@@ -441,7 +464,7 @@ pub fn handle_tags(
     let mut tags_food: Vec<Vec<String>> = Vec::new();
     if year_provided && !month_provided {
         // Loop over all possible files in the given year to find all tags in the year
-        let dir_name = format!("jrnl/{}/", args_tag_year);
+        let dir_name = format!("{}/jrnl/{}/", get_default_path(), args_tag_year);
         let paths_result = fs::read_dir(&dir_name);
         let paths = match paths_result {
             Ok(p) => p,
@@ -621,7 +644,13 @@ pub fn handle_tags(
 /// Given an entry_date, if it exists, opens the helix editor at that position
 pub fn open_editor(entry_date: String) {
     let parts: Vec<&str> = entry_date.split('-').collect();
-    let filename = format!("jrnl/{}/{}_{}.md", parts[0], parts[0], parts[1]);
+    let filename = format!(
+        "{}/jrnl/{}/{}_{}.md",
+        get_default_path(),
+        parts[0],
+        parts[0],
+        parts[1]
+    );
     let made_new_file = !check_file_existed(&filename);
 
     if made_new_file {
@@ -656,7 +685,13 @@ pub fn open_editor(entry_date: String) {
 
 /// Generates a report for a month.
 pub fn gen_report(year: i32, month: u32) {
-    let filename = format!("jrnl/{}/{}_{}.md", year, year, correct_month_nums(month));
+    let filename = format!(
+        "{}/jrnl/{}/{}_{}.md",
+        get_default_path(),
+        year,
+        year,
+        correct_month_nums(month)
+    );
     let (headings, no_of_entries) = get_headings(&filename);
     println!(
         "{}",
@@ -713,7 +748,7 @@ pub fn gen_report(year: i32, month: u32) {
 
 pub fn gen_report_year(year: i32) {
     // Loop over all possible files in the given year to find all tags in the year
-    let dir_name = format!("jrnl/{}/", year);
+    let dir_name = format!("{}/jrnl/{}/", get_default_path(), year);
     let paths_result = fs::read_dir(&dir_name);
     let paths = match paths_result {
         Ok(p) => p,
@@ -741,7 +776,13 @@ pub fn gen_report_year(year: i32) {
         let (year, month): (i32, u32) = (parts[2].parse().unwrap(), parts[3].parse().unwrap());
 
         // Stuff
-        let filename = format!("jrnl/{}/{}_{}.md", year, year, correct_month_nums(month));
+        let filename = format!(
+            "{}/jrnl/{}/{}_{}.md",
+            get_default_path(),
+            year,
+            year,
+            correct_month_nums(month)
+        );
         let (headings, curr_no_of_entries) = get_headings(&filename);
         total_entries += curr_no_of_entries.len();
 

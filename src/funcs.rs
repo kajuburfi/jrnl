@@ -21,6 +21,7 @@ pub fn default_conf() -> Config {
         max_rows: 5,
         add_timestamp: false,
         when_pager: "default".to_string(),
+        default_path: String::from("."),
     }
 }
 
@@ -169,7 +170,8 @@ pub fn make_pager(output: &str) {
 }
 
 pub fn read_config() -> (Config, String) {
-    let contents_result = fs::read_to_string("jrnl/config.toml");
+    let contents_result =
+        fs::read_to_string(shellexpand::tilde("~/.config/jrnl/config.toml").into_owned());
     let mut config: Config = default_conf();
     let mut set_default = false;
     let contents = match contents_result {
@@ -187,8 +189,6 @@ pub fn read_config() -> (Config, String) {
         config = match config_result {
             Ok(config) => config,
             Err(e) => {
-                //Only one possible type of error
-                // TODO: Fix
                 return (default_conf(), e.message().to_string());
             }
         }
