@@ -116,7 +116,7 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
 pub fn get_entry(date: NaiveDate) -> String {
     // Get the filename(pre-defined format) from the NaiveDate
     let filename: String = format!(
-        "{}/jrnl/{}/{}_{}.md",
+        "{}/jrnl_folder/{}/{}_{}.md",
         get_default_path(),
         date.year(),
         date.year(),
@@ -256,7 +256,7 @@ pub fn search_for_stuff(
     approx: bool,
 ) -> (Vec<String>, Vec<String>) {
     let filename: String = format!(
-        "{}/jrnl/{}/{}_{}.md",
+        "{}/jrnl_folder/{}/{}_{}.md",
         get_default_path(),
         date.year(),
         date.year(),
@@ -464,7 +464,7 @@ pub fn handle_tags(
     let mut tags_food: Vec<Vec<String>> = Vec::new();
     if year_provided && !month_provided {
         // Loop over all possible files in the given year to find all tags in the year
-        let dir_name = format!("{}/jrnl/{}/", get_default_path(), args_tag_year);
+        let dir_name = format!("{}/jrnl_folder/{}/", get_default_path(), args_tag_year);
         let paths_result = fs::read_dir(&dir_name);
         let paths = match paths_result {
             Ok(p) => p,
@@ -645,7 +645,7 @@ pub fn handle_tags(
 pub fn open_editor(entry_date: String) {
     let parts: Vec<&str> = entry_date.split('-').collect();
     let filename = format!(
-        "{}/jrnl/{}/{}_{}.md",
+        "{}/jrnl_folder/{}/{}_{}.md",
         get_default_path(),
         parts[0],
         parts[0],
@@ -686,7 +686,7 @@ pub fn open_editor(entry_date: String) {
 /// Generates a report for a month.
 pub fn gen_report(year: i32, month: u32) {
     let filename = format!(
-        "{}/jrnl/{}/{}_{}.md",
+        "{}/jrnl_folder/{}/{}_{}.md",
         get_default_path(),
         year,
         year,
@@ -748,7 +748,7 @@ pub fn gen_report(year: i32, month: u32) {
 
 pub fn gen_report_year(year: i32) {
     // Loop over all possible files in the given year to find all tags in the year
-    let dir_name = format!("{}/jrnl/{}/", get_default_path(), year);
+    let dir_name = format!("{}/jrnl_folder/{}/", get_default_path(), year);
     let paths_result = fs::read_dir(&dir_name);
     let paths = match paths_result {
         Ok(p) => p,
@@ -777,7 +777,7 @@ pub fn gen_report_year(year: i32) {
 
         // Stuff
         let filename = format!(
-            "{}/jrnl/{}/{}_{}.md",
+            "{}/jrnl_folder/{}/{}_{}.md",
             get_default_path(),
             year,
             year,
