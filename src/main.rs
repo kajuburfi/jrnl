@@ -49,8 +49,8 @@ struct Cli {
     open_config: bool,
 
     /// Search for similar words as well, along with the current word.
-    #[arg(short, long, requires = "searching")]
-    approx: bool,
+    #[arg(short, long, requires = "searching", default_missing_value=Some("0"), num_args=0..=1)]
+    approx: Option<u32>,
 
     /// Provide a path to search for the directory `jrnl`.
     #[arg(short, long, default_missing_value=Some("."), num_args=0..=1)]
@@ -125,6 +125,11 @@ fn main() {
         Some(0) => today.month(),
         Some(month) => month,
     };
+    let args_approx: u32 = match args.approx {
+        None => 1,
+        Some(0) => read_config().0.approx_variation,
+        Some(num) => num,
+    };
 
     // Handle arguments - not very efficiently or idiomatically
     if args_tag != "" {
@@ -135,7 +140,7 @@ fn main() {
             year_provided,
             month_provided,
             false,
-            false,
+            args_approx,
         );
     }
     if args_search != "" {
@@ -146,7 +151,7 @@ fn main() {
             year_provided,
             month_provided,
             true,
-            args.approx,
+            args_approx,
         );
     }
 

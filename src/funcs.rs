@@ -28,6 +28,7 @@ use crate::utils::*;
 ///         add_timestamp: false,
 ///         when_pager: "default".to_string(),
 ///         default_path: String::from("."),
+///         approx_variation: 1,
 ///     }
 /// );
 /// ```
@@ -41,6 +42,7 @@ pub fn default_conf() -> Config {
         add_timestamp: false,
         when_pager: "default".to_string(),
         default_path: String::from("."),
+        approx_variation: 1,
     }
 }
 

@@ -30,6 +30,7 @@ pub struct Config {
     pub add_timestamp: bool,
     pub when_pager: String,
     pub default_path: String,
+    pub approx_variation: u32,
 }
 
 /// Returns all headings(`# <stuff>`) and their corresponding line numbers
@@ -259,7 +260,7 @@ pub fn search_for_stuff(
     word: &str,
     date: NaiveDate,
     search: bool,
-    approx: bool,
+    approx: u32,
 ) -> (Vec<String>, Vec<String>) {
     let filename: String = format!(
         "{}/jrnl_folder/{}/{}_{}.md",
@@ -365,7 +366,7 @@ pub fn search_for_stuff(
             .collect();
         let mut line_over = false;
         for thing in words {
-            if !approx {
+            if approx <= 0 {
                 if (thing.to_lowercase() == word.to_lowercase()
                     || thing.to_lowercase() == word.to_lowercase() + "ed"
                     || thing.to_lowercase() == word.to_lowercase() + "d"
@@ -392,7 +393,7 @@ pub fn search_for_stuff(
                     || thing.to_lowercase() == word.to_lowercase() + "'s"
                     || thing.to_lowercase() == word.to_lowercase() + "s")
                     || (levenshtein(thing.to_lowercase().as_str(), word.to_lowercase().as_str())
-                        <= 1)
+                        <= approx)
                         && search
                         && !line_over
                 {
@@ -450,7 +451,7 @@ pub fn handle_tags(
     year_provided: bool,
     month_provided: bool,
     search: bool,
-    approx: bool,
+    approx: u32,
 ) {
     let today: DateTime<Local> = Local::now(); //Get `now` time
     let given_date_result = NaiveDate::from_ymd_opt(args_tag_year, args_tag_month, 1);
