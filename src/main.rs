@@ -126,7 +126,7 @@ fn main() {
         Some(month) => month,
     };
     let args_approx: u32 = match args.approx {
-        None => 1,
+        None => 0,
         Some(0) => read_config().0.approx_variation,
         Some(num) => num,
     };
