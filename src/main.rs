@@ -1,5 +1,3 @@
-/* TODO:
- */
 // Author: Tejas Gudgunti
 use crate::funcs::inquire_date;
 use crate::utils::*;
@@ -19,68 +17,31 @@ mod utils;
 /// for a given month, pre-filling some data(date, weekday, etc)
 struct Cli {
     /// Provide the date as YYYY-MM-DD, to fetch the relevant entry.
-    ///
-    /// When provided with a date, it fetches the relevant entry, and prints it to the terminal(STDOUT).
-    /// If provided with no date, just a `-e` or `--entry` tag, a date will be asked through an interactive calendar,
-    /// which has the current date as the default value.
-    /// If provided with an incorrect or non-existant date, the date will be asked by
-    /// the same procedure. Currently does NOT support paging.
     #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1, group="main")]
     entry: Option<String>,
 
-    /// Provide the date as YYYY-MM-DD, to open the relevant entry in helix-editor.
-    ///
-    /// A feature to be able to edit any given entry at any time, provided it exists. If it doesn't exist,
-    /// the program will exit. Opens the exact line number if the editor is Helix-editor. Editor can be
-    /// configured in the `jrnl/config.toml` as `editor=<executable name>`
+    /// Provide the date as YYYY-MM-DD, to open the relevant entry in the configured editor.
     #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1, group="main")]
     open_entry: Option<String>,
 
     /// List all occurances of a tag in a given file; Defaults to current month's file.
-    ///
-    /// Makes a table that shows all the places where the tag has been used, and the date of its usage,
-    /// so you can `--entry` or `--open-entry` for that date.
-    /// If a month `--month` or `-m` has been passed along with this, the tag will be searched for that month.
-    /// If a year `--year` or `-y` is passed along with this, but without a month, all files within that year
-    /// will be recursively searched for the tag specified.
-    /// If both year and month are provided, that exact file will be searched.
-    /// Supports a pager (configurable, defaults to `less`) when the number of rows in the table exceeds 10.
-    /// A special tag is `[food]`, which when passed, makes a different table. Check the README
-    #[arg(short, long, groups = ["main", "tag_rep"])]
+    #[arg(short, long, groups = ["main", "yearmonth"])]
     tag: Option<String>,
 
     /// Search for a given string in a file; Defaults to current month's file.
-    ///
-    /// Similar to `--tag`, this searches for the provided string. It is case-insensitive,
-    /// and searches for all matches not in the designated tag format(`[tag]`). Shows all results
-    /// with entry date as a table format similar to `--tag`. Only exact words are searched for.
-    /// Words are highlighted. Can provide `--year` and `--month` tags along with this.
-    #[arg(short, long, groups = ["main", "searching", "tag_rep"])]
+    #[arg(short, long, groups = ["main", "searching", "yearmonth"])]
     search: Option<String>,
 
     /// Provide a year(YYYY) to search for a tag in, or to generate a report
-    ///
-    /// Used in both `--tag` and `--gen-report`. Accepts a year YYYY to pass to either `--tag` or `--gen-report`.
-    /// If any error of the year, it defaults to the current year.
-    // Note that we always provide Some(&str) for the default_missing_value, it automatically
-    // adjusts the value
-    #[arg(short, long, requires = "tag_rep", default_missing_value=Some("0"), num_args=0..=1)]
+    #[arg(short, long, requires = "yearmonth", default_missing_value=Some("0"), num_args=0..=1)]
     year: Option<i32>,
 
     /// Provide the month(MM) to search for the tag in, or to generate a report
-    ///
-    /// Used in both `--tag` and `--gen-report`. Accepts a month MM to pass to either `--tag` or `--gen-report`.
-    /// If any error of the month, it defaults to the current month.
-    #[arg(short, long, requires = "tag_rep", default_missing_value=Some("0"), num_args=0..=1)]
+    #[arg(short, long, requires = "yearmonth", default_missing_value=Some("0"), num_args=0..=1)]
     month: Option<u32>,
 
     /// Generate a report about a given month's file; Defaults to current month's file.
-    ///
-    /// Generates a report, and prints it to STDOUT.
-    /// Shows the number of entries in the month, and the most used tags along with their frequency in
-    /// a table format.
-    /// Can provide the month or year to generate the report of, using `--year`(`-y`) or `--month`(`-m`) flags.
-    #[arg(long, groups = ["main", "tag_rep"])]
+    #[arg(long, groups = ["main", "yearmonth"])]
     gen_report: bool,
 
     /// Opens the respective configuration file: ./jrnl/config.toml
@@ -92,9 +53,6 @@ struct Cli {
     approx: bool,
 
     /// Provide a path to search for the directory `jrnl`.
-    ///
-    /// If provided with just `--path` and no argument for the flag, the default value
-    /// is set to the current directory
     #[arg(short, long, default_missing_value=Some("."), num_args=0..=1)]
     path: Option<String>,
 }
@@ -103,8 +61,9 @@ fn main() {
     // First check if config is right
     if !Path::new(&tilde("~/.config/jrnl/config.toml").into_owned()).exists() {
         println!(
-            "{}: No configuration file found. Continuing with default config.\n",
-            "WARNING".yellow().bold()
+            "{}: No configuration file found. Continuing with default config.\n{}: Make a config file at `~/.config/jrnl/config.toml`.",
+            "WARNING".yellow().bold(),
+            "HELP".green().bold()
         );
     }
     if read_config().1 != String::new() {
@@ -244,6 +203,9 @@ fn main() {
     }
 }
 
+/// Returns the path required in the current calling of the program.
+/// If a `--path` flag is passed, it takes the value of that, else
+/// it searches for the `default_path` in the config file.
 pub fn get_default_path() -> String {
     match Cli::parse().path.as_deref() {
         None => tilde(&read_config().0.default_path).into_owned(),

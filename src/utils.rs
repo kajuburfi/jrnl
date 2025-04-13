@@ -19,6 +19,7 @@ use stringmetrics::levenshtein;
 #[path = "funcs.rs"]
 pub mod funcs;
 
+/// Sets the Config
 #[derive(Deserialize, Debug)]
 pub struct Config {
     pub add_weekday: bool,
@@ -31,7 +32,8 @@ pub struct Config {
     pub default_path: String,
 }
 
-/// Returns all headings(<h1>) and their corresponding line numbers
+/// Returns all headings(`# <stuff>`) and their corresponding line numbers
+/// as a tuple: (headings, corresponding_line_no)
 pub fn get_headings(filename: &str) -> (Vec<String>, Vec<u32>) {
     let file_result: Result<File, std::io::Error> = File::open(filename);
     let file: File = match file_result {
@@ -71,9 +73,11 @@ pub fn get_headings(filename: &str) -> (Vec<String>, Vec<u32>) {
     (headings, corresponding_line_no)
 }
 
-/// Checks if the file contains a given date as a h1 heading.
-/// If not, it appends it to the file.
-pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
+/// Adds certain information to the file.
+///
+/// To be used when opening the file for a new entry.
+/// Adds different stuff depending on the configuration
+pub fn add_info_to_file(filename: &str, date: String) -> std::io::Result<()> {
     // Convert string date to NaiveDate to get the weekday
     let date_naive = NaiveDate::parse_from_str(&date, "%Y-%m-%d").unwrap();
     let weekday = date_naive.weekday().to_string().to_uppercase();
@@ -84,6 +88,7 @@ pub fn add_date_to_file(filename: &str, date: String) -> std::io::Result<()> {
         .append(true)
         .open(filename)
         .unwrap();
+    // We don't need the line numbers
     let (headings, _) = get_headings(filename);
 
     let config = read_config().0;
@@ -205,6 +210,7 @@ pub fn get_entry(date: NaiveDate) -> String {
 }
 
 /// Returns the tags found from a file(a month)
+/// Useful in --gen-report
 pub fn get_tags_from_file(filename: &str) -> Vec<String> {
     let file_result: Result<File, std::io::Error> = File::open(filename);
     let file: File = match file_result {
@@ -248,7 +254,7 @@ pub fn get_tags_from_file(filename: &str) -> Vec<String> {
 /// Returns all records with the tag in the given file.
 /// Provides the date of the tag as well
 /// Returns (date, entry)
-// By default, search for *tags*
+/// By default, search for *tags*
 pub fn search_for_stuff(
     word: &str,
     date: NaiveDate,
@@ -436,7 +442,7 @@ pub fn parse_entry_args(args: &str) -> NaiveDate {
     entry_date
 }
 
-/// Handles the processing of tags
+/// Handles the processing of tags and search
 pub fn handle_tags(
     args_tag: &str,
     args_tag_year: i32,
@@ -482,9 +488,12 @@ pub fn handle_tags(
         for path in paths {
             let name = path.unwrap().path().display().to_string();
             let parts: Vec<&str> = name.split(&['/', '_', '.'][..]).collect();
-            let date =
-                NaiveDate::from_ymd_opt(parts[2].parse().unwrap(), parts[3].parse().unwrap(), 1)
-                    .unwrap_or(today.date_naive());
+            let date = NaiveDate::from_ymd_opt(
+                parts[parts.len() - 3].parse().unwrap(),
+                parts[parts.len() - 2].parse().unwrap(),
+                1,
+            )
+            .unwrap_or(today.date_naive());
             let tags_from_file = search_for_stuff(args_tag, date, search, approx);
             tags_date.extend(tags_from_file.0);
             tags_val.extend(tags_from_file.1);
@@ -641,7 +650,8 @@ pub fn handle_tags(
     }
 }
 
-/// Given an entry_date, if it exists, opens the helix editor at that position
+/// Given an entry_date, if it exists, opens the editor at that position.
+/// The editor is decided based upon the configuration
 pub fn open_editor(entry_date: String) {
     let parts: Vec<&str> = entry_date.split('-').collect();
     let filename = format!(
@@ -657,7 +667,7 @@ pub fn open_editor(entry_date: String) {
         println!("Made a new file: {}", filename.underline());
     }
 
-    let added_date_result = add_date_to_file(&filename, entry_date.clone());
+    let added_date_result = add_info_to_file(&filename, entry_date.clone());
     match added_date_result {
         Ok(_) => (),
         Err(e) => panic!("An error occured: {}", e),
@@ -684,6 +694,38 @@ pub fn open_editor(entry_date: String) {
 }
 
 /// Generates a report for a month.
+///
+/// ## Sample output:
+/// Note that colors are present, but cannot be shown here.
+///
+/// ```
+/// Report for April, 2025
+///
+/// Number of entries this month: 12
+///
+///      April 2025
+/// Mo Tu We Th Fr Sa Su
+///     1  2  3  4  5  6
+///  7  8  9 10 11 12 13
+/// 14 15 16 17 18 19 20
+/// 21 22 23 24 25 26 27
+/// 28 29 30
+///
+/// Most used tags:
+/// ╭───────────┬───────────╮
+/// │ Tag       ┆ Frequency │
+/// ╞═══════════╪═══════════╡
+/// │ tag1      ┆ 12        │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag2      ┆ 6         │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag3      ┆ 2         │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag4      ┆ 2         │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag5      ┆ 2         │
+/// ╰───────────┴───────────╯
+/// ```
 pub fn gen_report(year: i32, month: u32) {
     let filename = format!(
         "{}/jrnl_folder/{}/{}_{}.md",
@@ -746,6 +788,45 @@ pub fn gen_report(year: i32, month: u32) {
     println!("{}", table);
 }
 
+/// Generates a report for a year.
+///
+/// ## Sample output
+/// Note that colors will be shown.
+/// In the calendar, the dates when entries are present will be highlighted
+///
+/// ```
+/// Report for 2025
+///
+/// Number of entries this year: 17
+/// March: 5
+/// April: 12
+/// May: 0
+///
+///       March 2025             April 2025             May 2025
+///  Mo Tu We Th Fr Sa Su   Mo Tu We Th Fr Sa Su   Mo Tu We Th Fr Sa Su
+///                  1  2       1  2  3  4  5  6             1  2  3  4
+///   3  4  5  6  7  8  9    7  8  9 10 11 12 13    5  6  7  8  9 10 11
+///  10 11 12 13 14 15 16   14 15 16 17 18 19 20   12 13 14 15 16 17 18
+///  17 18 19 20 21 22 23   21 22 23 24 25 26 27   19 20 21 22 23 24 25
+///  24 25 26 27 28 29 30   28 29 30               26 27 28 29 30 31
+///  31
+///
+///
+/// Most used tags:
+/// ╭───────────┬───────────╮
+/// │ Tag       ┆ Frequency │
+/// ╞═══════════╪═══════════╡
+/// │ food      ┆ 17        │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag2      ┆ 10        │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag3      ┆ 4         │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag4      ┆ 3         │
+/// ├╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ tag5      ┆ 2         │
+/// ╰───────────┴───────────╯
+/// ```
 pub fn gen_report_year(year: i32) {
     // Loop over all possible files in the given year to find all tags in the year
     let dir_name = format!("{}/jrnl_folder/{}/", get_default_path(), year);
@@ -773,7 +854,10 @@ pub fn gen_report_year(year: i32) {
     for path in paths {
         let name = path.unwrap().path().display().to_string();
         let parts: Vec<&str> = name.split(&['/', '_', '.'][..]).collect();
-        let (year, month): (i32, u32) = (parts[2].parse().unwrap(), parts[3].parse().unwrap());
+        let (year, month): (i32, u32) = (
+            parts[parts.len() - 3].parse().unwrap(),
+            parts[parts.len() - 2].parse().unwrap(),
+        );
 
         // Stuff
         let filename = format!(
