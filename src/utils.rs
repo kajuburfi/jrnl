@@ -1,3 +1,8 @@
+//! Contains some utilities that are used in the [`main`][crate::main] function
+//!
+//! This is majorly just a bunch of functions thrown together that works.
+//!
+//! It is not very efficient, nor idiomatic, but it works(and is not noticeably slow).
 use crate::get_default_path;
 use crate::utils::funcs::*;
 use chrono::{DateTime, Datelike, Local, NaiveDate, format::ParseErrorKind};
@@ -20,16 +25,36 @@ use stringmetrics::levenshtein;
 pub mod funcs;
 
 /// Sets the Config
+///
+/// This contains all the fields that need to be put in the `config.toml` file
 #[derive(Deserialize, Debug)]
 pub struct Config {
+    /// Whether we should add the weekday to the file by default when opening it for a new entry
     pub add_weekday: bool,
+
+    /// Whether we should add the food column pattern to the file by default when opening it for a new entry
     pub add_food_column: bool,
+
+    /// The default editor to be chosen
     pub editor: String,
+
+    /// The default pager to be chosen
     pub pager: String,
+
+    /// Maximum number of rows that is supposed to be shown when showing the tags when using [`gen_report`]
+    /// or [`gen_report_year`]
     pub max_rows: u32,
+
+    /// Whether the timestamp must be added(next to the weekday, if present)
     pub add_timestamp: bool,
+
+    /// When to use the pager, "always", "never", "default"
     pub when_pager: String,
+
+    /// The default path to check for `jrnl_folder`
     pub default_path: String,
+
+    /// The default approximation to be used when no number is passed to the `--approx` flag.
     pub approx_variation: u32,
 }
 
@@ -427,7 +452,7 @@ pub fn parse_entry_args(args: &str) -> NaiveDate {
             | ParseErrorKind::TooShort
             | ParseErrorKind::TooLong
             | ParseErrorKind::BadFormat => {
-                println!(
+                eprintln!(
                     "{}",
                     "Please provide date in appropriate format: YYYY-MM-DD".red()
                 );
@@ -435,7 +460,7 @@ pub fn parse_entry_args(args: &str) -> NaiveDate {
                 inquire_date()
             }
             e => {
-                println!("{}", format!("An error has occured: {:?}", e).red());
+                eprintln!("{}", format!("An error has occured: {:?}", e).red());
                 process::exit(1);
             }
         },

@@ -1,4 +1,10 @@
 // Author: Tejas Gudgunti
+
+//! This is one of my first rust projects, and is therefore not very idiomatic.
+//! The code contains lots of repetition, and other generally *bad* coding practices.
+//! Continue at your own risk.
+//!
+//! This is made mostly for my own reference later on, when I will eventually need it.
 use crate::funcs::inquire_date;
 use crate::utils::*;
 use chrono::{DateTime, Datelike, Local};

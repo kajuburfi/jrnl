@@ -1,4 +1,7 @@
 // File to store small(?) functions used in utils
+
+//! This contains _small_ functions that are used in [`utils`][crate::utils]
+//! Some of them are directly used in [`main`][crate::main]
 use chrono::{Month, NaiveDate};
 use colored::Colorize;
 use comfy_table::{ContentArrangement, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
@@ -49,6 +52,26 @@ pub fn default_conf() -> Config {
 /// Checks if the file exists, if not, it makes the file.
 /// If the file previously existed, returns true
 /// else false.
+///
+/// ## Example:
+///
+/// Let's say that the file `path/to/abc.md` exists.
+/// ```
+/// assert!(check_file_existed("path/to/abc.md"));
+/// ```
+///
+/// And that the file `path/to/nowhere.md` does *not* exist, but the directory `path/to` exists, then:
+/// ```
+/// assert_ne!(check_file_existed("path/to/nowhere.md"));
+/// ```
+/// and now the file will have been created.
+///
+/// In the above case, but if the directory `path/to` does *not* exist, then
+/// you will also get this printed to STDERR(in red color):
+/// ```text
+/// There doesn't seem to be a folder for path/to. Please create it.
+/// ```
+///
 pub fn check_file_existed(filename: &str) -> bool {
     let path: &Path = Path::new(filename);
 
@@ -116,6 +139,21 @@ pub fn month_no_to_name(month_num: u32) -> String {
 }
 
 /// Makes a table to show the tags and related records
+///
+/// # Sample output:
+/// Note that the headings are colored in green, and the `tag_1` is highlighted in cyan
+///
+/// ```text
+/// ╭───────────────┬──────────────────────────────────────────╮
+/// │ Date of Entry ┆ Record                                   │
+/// ╞═══════════════╪══════════════════════════════════════════╡
+/// │ 2025-03-31    ┆ [tag_1] Stuff                            │
+/// ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ 2025-03-29    ┆ [tag_1] Some more                        │
+/// ├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┤
+/// │ 2025-03-28    ┆ [tag_1] Other things                     │
+/// ╰───────────────┴──────────────────────────────────────────╯
+/// ```
 pub fn make_tags_table(dates_values: (Vec<String>, Vec<String>)) -> Table {
     let (dates, values) = dates_values;
     let mut table = Table::new();
@@ -144,6 +182,20 @@ pub fn make_tags_table(dates_values: (Vec<String>, Vec<String>)) -> Table {
 }
 
 /// Makes a food table to show food
+///
+/// # Sample Output:
+/// Note that the headings are colored in green
+///
+/// ```text
+/// ╭───────────────┬─────────────────────┬─────────────────────────┬───────────────────┬────────────────╮
+/// │ Date of Entry ┆ Breakfast           ┆ Lunch                   ┆ Dinner            ┆ Other          │
+/// ╞═══════════════╪═════════════════════╪═════════════════════════╪═══════════════════╪════════════════╡
+/// │ 2025-03-27    ┆ some breakfast item ┆ A lunch item - course 1 ┆ A filling dinner. ┆ Snack - Chips  │
+/// │               ┆                     ┆ A lunch item - course 2 ┆ A tasty dinner.   ┆ Fruit - Mango  │
+/// │               ┆                     ┆ A lunch item - course 3 ┆                   ┆                │
+/// ╰───────────────┴─────────────────────┴─────────────────────────┴───────────────────┴────────────────╯
+/// ```
+///
 pub fn make_food_table(dates_values: (Vec<String>, Vec<Vec<String>>)) -> Table {
     let (dates, values) = dates_values;
     let mut table = Table::new();
@@ -181,6 +233,8 @@ pub fn make_food_table(dates_values: (Vec<String>, Vec<Vec<String>>)) -> Table {
 }
 
 /// Inquires the date in case not provided.
+///
+/// Uses the [inquire](https://github.com/mikaelmello/inquire) crate
 pub fn inquire_date() -> NaiveDate {
     let date_prompt = DateSelect::new("Select a date to search for its entry:").prompt();
     let date = match date_prompt {
@@ -197,12 +251,18 @@ pub fn inquire_date() -> NaiveDate {
 }
 
 /// Makes a pager to pass some output
+///
+/// The pager used in the one set in the config file, whose values are stored in [`Config`]
 pub fn make_pager(output: &str) {
     Pager::with_default_pager(read_config().0.pager).setup();
     println!("{}", output);
 }
 
 /// Reads the config file and stores the result
+///
+/// If there is an error, it returns the error message as `(Config, <error message>)`.
+/// Otherwise, the second part is an empty String
+///
 pub fn read_config() -> (Config, String) {
     let contents_result =
         fs::read_to_string(shellexpand::tilde("~/.config/jrnl/config.toml").into_owned());
@@ -232,6 +292,19 @@ pub fn read_config() -> (Config, String) {
 
 /// Prints a calendar for the given month, and highlights
 /// certain days with a green, bold modifier.
+///
+/// # Sample Output:
+/// Note colors cannot be displayed here.
+///
+/// ```text
+///      April 2025
+/// Mo Tu We Th Fr Sa Su
+///     1  2  3  4  5  6
+///  7  8  9 10 11 12 13
+/// 14 15 16 17 18 19 20
+/// 21 22 23 24 25 26 27
+/// 28 29 30
+/// ```
 pub fn print_calendar(year: i32, month: u32, highlight_day: Vec<u32>) -> String {
     let mut output = String::new();
 
