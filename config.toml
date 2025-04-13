@@ -1,0 +1,45 @@
+# Config file for jrnl
+
+### Should the weekday be added to each day's entry?
+### Looks like:
+#| ### FRI
+#| # YYYY-MM-DD
+add_weekday = true
+
+### Should a default line be added for every day?
+### Looks like:(with add_weekday = false) 
+#| # YYYY-MM-DD
+#| - [food] | | |
+add_food_column = true
+
+### Which editor to be used for entries?
+editor = "hx"
+
+### Which pager to be used for entries?
+pager = "bat"
+
+### Maximum rows to be printed, after which a pager will be used(if set to default)
+### Limits top tags to this value when using `--gen-report`
+max_rows = 5
+
+### Should a timestamp be added to your entry?
+### Looks like:(time in 24hr; with add_weekday = true)
+#| ### FRI (HH:MM:SS) 
+#| # YYYY-MM-DD
+add_timestamp = true
+
+### When should the pager be used?
+### default         -> after max_rows, a pager is used, otherwise
+###                    the output will be printed
+### always          -> always use the pager for all outputs
+### never           -> always print output, never use pager.
+### <anything else> -> same as never
+when_pager = "default"
+
+### In which folder should `jrnl` search for the folder `jrnl`?
+### Provide a String, with absolute path
+### This is only the default, you can specify exact ones on the fly.
+default_path = "~"
+
+### How many character mistakes should be allowed by default?
+approx_variation = 1

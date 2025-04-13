@@ -1,5 +1,41 @@
-# `jrnl`
-A simple tool to list the day's activities.
+<h1 align=center>`jrnl`</h1>
+
+---
+
+> A simple tool to list the day's activities, completely in CLI.
+
+# Why?
+
+Many similar tools exist, but this was sort of a learning project(for rust), and 
+none of them met all the requirements I was looking for in a `jrnl`-ing system.
+
+# Features(in brief)
+
+- All data is stored in markdown format(so **nothing** is _encrypted_).
+- You can have multiple different `jrnl_folder`s, for different purposes, and can use any one from any
+  where using the `--path`(`-p`) flag.
+- Tag system
+  ```
+  - [tag1] [tag2] Some data.
+  ```
+- Already filled in data(date, weekday, time, etc) in your file.
+- A specific ordering system, with 1 file per month.
+- Prints calendars with highlighted dates.
+- Search system.
+- Specific `food` tag.
+- _Slightly_ configurable(I hardcoded most of the things).
+- Multiple `jrnl`s are supported, with a default one. The specific one needed can be chosen using `--path`.
+
+# Installation
+
+Since this is just a side-project, there is not many ways to install this.
+
+You can, of course, clone the repository and use `cargo` to install it, or use:
+```sh
+cargo install --git https://github.com/kajuburfi/jrnl
+```
+
+> Note: This is meant for my personal use, and so many things are hardcoded. Use at your own risk. 
 
 # Features
 - Arranges entries of each day such that a month of entries is stored in a file. 
@@ -7,8 +43,7 @@ A simple tool to list the day's activities.
   ```
   Template           |   Example
                      |
-  jrnl               |   jrnl
-  '- config.toml     |   '- config.toml
+  jrnl_folder        |   jrnl_folder
   '- YYYY            |   '- 2025
   |  '- YYYY_MM.md   |   |  '- 2025_01.md
   |  '- YYYY_MM.md   |   |  '- 2025_02.md
@@ -17,11 +52,11 @@ A simple tool to list the day's activities.
   |  '- YYYY_MM.md   |   |  '- 2026_02.md
   ```
 - Just by running `jrnl` with no flags opens the current day's entry in your text editor.
-  Automatically fills in the date - weekday is configurable.
+  Automatically fills in the date - weekday and time is configurable.
 - General entry format:
   ```
   Template                |   Example
-  ### WEEKDAY             |   ### FRI
+  ### WEEKDAY (HH:MM:SS)  |   ### FRI (13:05:28)
   # YYYY-MM-DD            |   # 2025-03-28
   - [tag] entry           |   - [milestone] [game] Played and won 200th game of chess.
   - entry                 |   - Cleaned up room.
@@ -56,8 +91,9 @@ A simple tool to list the day's activities.
   (Note: Here, the colors cannot be shown, so you'll have to trust this.)
 - A special tag - `food` is pre-defined. Input your daily food intake as:
   ```
-  # YYYY-MM-DD
   - [food] Breakfast | Lunch | Dinner | Other
+  <!-- Example -->
+  - [food] some breakfast item | A lunch item - course 1 A lunch item - course 2 A lunch item - course 3 | A filling dinner. A tasty dinner. | Snack - Chips Fruit - Mango
   ```
   When fetching the tag through `--tag food`, you get a nice ascii table:
   ```
@@ -73,7 +109,7 @@ A simple tool to list the day's activities.
   a pager with the contents(configurable). 
 - To fetch entries(or open them), a date is required. You can either pass this through the flag `--entry YYYY-MM-DD`
   (`-e YYYY-MM-DD`), or if you just pass an empty flag(`-e`), an interactive calendar will prompt for the 
-  date(Using [inquire](https://github.com/mikaelmello/inquire)). The calendar will open if there is any 
+  date(Using [inquire](https://github.com/mikaelmello/inquire)). The calendar will also open if there is any 
   problem with reading the date.
 - When fetching tags, the default file to search for is the current month's file. However, you can specify any other 
   file using `--year YYYY`(`-y YYYY`) or `--month MM`(`-m MM`). If only provided with a year, and no month, all files
@@ -85,3 +121,18 @@ A simple tool to list the day's activities.
 - Calendars are printed in tags and generating reports, with highlighting. 
   The calendars of each month will be printed in a grid-like form, extending rightwards depending
   on your terminal's width. 
+
+# Configuration
+
+Just copy-paste the [config file](./config.toml) into `~/.config/jrnl/config.toml`, and make the necessary changes.
+All data about the config file is mentioned in the comments.
+
+> Since most of the things are made specifically for my needs(hardcoded), many options are not configurable.
+>
+> If you want to try it out, and get stuck, feel free to open an issue, and I'll see what I can do.
+>
+> tldr; Not specifically meant for other people's use(might not fit your needs, and is mostly not very much configurable)
+
+# License
+
+This tool is licensed under the MIT license.
