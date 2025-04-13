@@ -12,6 +12,25 @@ use std::{
 
 use crate::utils::*;
 
+/// Returns the default configuration to be used when no config file is found.
+///
+/// ## Example:
+///
+/// ```
+/// assert_eq!(
+///     default_conf(),
+///     Config {
+///         add_weekday: true,
+///         add_food_column: false,
+///         editor: String::from("nano"),
+///         pager: String::from("less"),
+///         max_rows: 5,
+///         add_timestamp: false,
+///         when_pager: "default".to_string(),
+///         default_path: String::from("."),
+///     }
+/// );
+/// ```
 pub fn default_conf() -> Config {
     Config {
         add_weekday: true,
@@ -57,6 +76,12 @@ pub fn check_file_existed(filename: &str) -> bool {
 
 /// Takes in a number, generally provided from some NaiveDate(converted),
 /// and returns the string. Useful to get the correct file path.
+///
+/// ## Example:
+/// ```
+/// assert_eq!(correct_month_nums(3), String::from("03"));
+/// assert_eq!(correct_month_nums(20), String::from("00"));
+/// ```
 pub fn correct_month_nums(num: u32) -> String {
     match num {
         1 => "01".to_string(),
@@ -74,6 +99,12 @@ pub fn correct_month_nums(num: u32) -> String {
 
 /// Takes a month number(generally from NaiveDate) and returns
 /// the name of the month. Used for printing purposes.
+///
+/// ## Example:
+/// ```
+/// assert_eq!(month_no_to_name(2), String::from("February"));
+/// assert_eq!(month_no_to_name(20), String::from("January"));
+/// ```
 pub fn month_no_to_name(month_num: u32) -> String {
     // Syntax according to the docs
     let month = Month::try_from(u8::try_from(month_num).unwrap())
@@ -169,6 +200,7 @@ pub fn make_pager(output: &str) {
     println!("{}", output);
 }
 
+/// Reads the config file and stores the result
 pub fn read_config() -> (Config, String) {
     let contents_result =
         fs::read_to_string(shellexpand::tilde("~/.config/jrnl/config.toml").into_owned());
@@ -196,6 +228,8 @@ pub fn read_config() -> (Config, String) {
     (config, String::new())
 }
 
+/// Prints a calendar for the given month, and highlights
+/// certain days with a green, bold modifier.
 pub fn print_calendar(year: i32, month: u32, highlight_day: Vec<u32>) -> String {
     let mut output = String::new();
 

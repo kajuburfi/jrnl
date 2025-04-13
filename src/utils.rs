@@ -698,7 +698,7 @@ pub fn open_editor(entry_date: String) {
 /// ## Sample output:
 /// Note that colors are present, but cannot be shown here.
 ///
-/// ```
+/// ```text
 /// Report for April, 2025
 ///
 /// Number of entries this month: 12
@@ -794,7 +794,7 @@ pub fn gen_report(year: i32, month: u32) {
 /// Note that colors will be shown.
 /// In the calendar, the dates when entries are present will be highlighted
 ///
-/// ```
+/// ```text
 /// Report for 2025
 ///
 /// Number of entries this year: 17
