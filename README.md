@@ -1,15 +1,17 @@
-<h1 align=center>`jrnl`</h1>
-
----
+<h1 align=center><code>jrnl</code></h1>
 
 > A simple tool to list the day's activities, completely in CLI.
 
-# Why?
+## Why?
 
 Many similar tools exist, but this was sort of a learning project(for rust), and 
 none of them met all the requirements I was looking for in a `jrnl`-ing system.
 
-# Features(in brief)
+## Demo
+
+https://github.com/user-attachments/assets/ed63f1c8-8ef2-4dc6-a1a4-02f20681abbe
+
+## Features(in brief)
 
 - All data is stored in markdown format(so **nothing** is _encrypted_).
 - You can have multiple different `jrnl_folder`s, for different purposes, and can use any one from any
@@ -26,7 +28,7 @@ none of them met all the requirements I was looking for in a `jrnl`-ing system.
 - _Slightly_ configurable(I hardcoded most of the things).
 - Multiple `jrnl`s are supported, with a default one. The specific one needed can be chosen using `--path`.
 
-# Installation
+## Installation
 
 Since this is just a side-project, there is not many ways to install this.
 
@@ -37,7 +39,7 @@ cargo install --git https://github.com/kajuburfi/jrnl
 
 > Note: This is meant for my personal use, and so many things are hardcoded. Use at your own risk. 
 
-# Features
+## Features
 - Arranges entries of each day such that a month of entries is stored in a file. 
   File structure(tree):
   ```
@@ -122,7 +124,7 @@ cargo install --git https://github.com/kajuburfi/jrnl
   The calendars of each month will be printed in a grid-like form, extending rightwards depending
   on your terminal's width. 
 
-# Configuration
+## Configuration
 
 Just copy-paste the [config file](./config.toml) into `~/.config/jrnl/config.toml`, and make the necessary changes.
 All data about the config file is mentioned in the comments.
@@ -133,6 +135,6 @@ All data about the config file is mentioned in the comments.
 >
 > tldr; Not specifically meant for other people's use(might not fit your needs, and is mostly not very much configurable)
 
-# License
+## License
 
 This tool is licensed under the MIT license.
