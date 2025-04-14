@@ -26,7 +26,6 @@ https://github.com/user-attachments/assets/ed63f1c8-8ef2-4dc6-a1a4-02f20681abbe
 - Search system.
 - Specific `food` tag.
 - _Slightly_ configurable(I hardcoded most of the things).
-- Multiple `jrnl`s are supported, with a default one. The specific one needed can be chosen using `--path`.
 
 ## Installation
 
@@ -34,7 +33,7 @@ Since this is just a side-project, there is not many ways to install this.
 
 You can, of course, clone the repository and use `cargo` to install it, or use:
 ```sh
-cargo install --git https://github.com/kajuburfi/jrnl
+cargo install --git https://github.com/kajuburfi/jrnl --locked
 ```
 
 > Note: This is meant for my personal use, and so many things are hardcoded. Use at your own risk. 
@@ -97,7 +96,7 @@ cargo install --git https://github.com/kajuburfi/jrnl
   <!-- Example -->
   - [food] some breakfast item | A lunch item - course 1 A lunch item - course 2 A lunch item - course 3 | A filling dinner. A tasty dinner. | Snack - Chips Fruit - Mango
   ```
-  When fetching the tag through `--tag food`, you get a nice ascii table:
+  When fetching the tag through `--tag food`, you get a nice ascii table(along with a calendar - not shown here):
   ```
   ╭───────────────┬─────────────────────┬─────────────────────────┬───────────────────┬────────────────╮
   │ Date of Entry ┆ Breakfast           ┆ Lunch                   ┆ Dinner            ┆ Other          │
@@ -134,6 +133,20 @@ All data about the config file is mentioned in the comments.
 > If you want to try it out, and get stuck, feel free to open an issue, and I'll see what I can do.
 >
 > tldr; Not specifically meant for other people's use(might not fit your needs, and is mostly not very much configurable)
+
+## Dependencies
+
+- [`chrono`](https://github.com/chronotope/chrono): For date and time purposes.
+- [`clap`](https://github.com/clap-rs/clap): For CLI arguments.
+- [`colored`](https://github.com/colored-rs/colored): For colored messages.
+- [`inquire`](https://github.com/mikaelmello/inquire): To interactively get the date(of entry to be fetched) from the user.
+- [`pager`](https://docs.rs/pager/latest/pager/): To page long outputs.
+- [`comfy-table`](https://github.com/Nukesor/comfy-table): To print tables.
+- [`toml`](https://docs.rs/toml/latest/toml/): To parse the configuration file.
+- [`serde`](https://serde.rs/): For use in `toml` and `clap`.
+- [`term_size`](https://docs.rs/term_size/latest/term_size/): To get the terminal width, to be able to wrap tables and calendars accordingly.
+- [`stringmetrics`](https://docs.rs/stringmetrics/latest/stringmetrics/): For _approximate_ word searching.
+- [`shellexpand`](https://docs.rs/shellexpand/latest/shellexpand/): To expand the `~`(tilde) in paths.
 
 ## License
 
