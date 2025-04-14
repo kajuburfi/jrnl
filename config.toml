@@ -36,7 +36,7 @@ add_timestamp = true
 ### <anything else> -> same as never
 when_pager = "default"
 
-### In which folder should `jrnl` search for the folder `jrnl`?
+### In which folder should `jrnl` search for the folder `jrnl_folder`?
 ### Provide a String, with absolute path
 ### This is only the default, you can specify exact ones on the fly.
 default_path = "~"
