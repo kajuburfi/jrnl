@@ -41,5 +41,5 @@ when_pager = "default"
 ### This is only the default, you can specify exact ones on the fly.
 default_path = "~"
 
-### How many character mistakes should be allowed by default?
+### How many character mistakes should be allowed by default when using `--approx` flag?
 approx_variation = 1
