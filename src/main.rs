@@ -1,4 +1,6 @@
 // Author: Tejas Gudgunti
+/* TODO:
+*/
 
 //! This is one of my first rust projects, and is therefore not very idiomatic.
 //! The code contains lots of repetition, and other generally *bad* coding practices.
@@ -50,7 +52,7 @@ struct Cli {
     #[arg(long, groups = ["main", "yearmonth"])]
     gen_report: bool,
 
-    /// Opens the respective configuration file: ./jrnl/config.toml
+    /// Opens the configuration file: ~/.config/jrnl/config.toml
     #[arg(long, group = "main")]
     open_config: bool,
 
@@ -61,6 +63,10 @@ struct Cli {
     /// Provide a path to search for the directory `jrnl`.
     #[arg(short, long, default_missing_value=Some("."), num_args=0..=1)]
     path: Option<String>,
+
+    /// Print the current configuration
+    #[arg(long, group = "main")]
+    print_config: bool,
 }
 
 fn main() {
@@ -202,11 +208,16 @@ fn main() {
             .expect("Failed to execute process");
     }
 
+    if args.print_config {
+        println!("{}", read_config().0);
+    }
+
     if args_tag == ""
         && args_entry == ""
         && args_open_entry == ""
         && !args.gen_report
         && !args.open_config
+        && !args.print_config
         && args_search == ""
     {
         let today_date = today.format("%Y-%m-%d").to_string();

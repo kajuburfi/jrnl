@@ -58,6 +58,38 @@ pub struct Config {
     pub approx_variation: u32,
 }
 
+impl std::fmt::Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut table = Table::new();
+        table
+            .load_preset(UTF8_FULL)
+            .apply_modifier(UTF8_ROUND_CORNERS)
+            .set_content_arrangement(ContentArrangement::Dynamic)
+            .set_header(vec!["Quantities".green(), "Value".green()]);
+        table.add_row(vec!["Add Weekday", &self.add_weekday.to_string()]);
+        table.add_row(vec!["Add Food Column", &self.add_food_column.to_string()]);
+        table.add_row(vec!["Add timestamp", &self.add_timestamp.to_string()]);
+        table.add_row(vec!["Default Editor", &self.editor.to_string()]);
+        table.add_row(vec!["Default Pager", &self.pager.to_string()]);
+        table.add_row(vec![
+            "Max rows to display for tags",
+            &self.max_rows.to_string(),
+        ]);
+        table.add_row(vec!["When to use pager", &self.when_pager.to_string()]);
+        table.add_row(vec!["Default path", &self.default_path.to_string()]);
+        table.add_row(vec![
+            "Approximation sensitivity ",
+            &self.approx_variation.to_string(),
+        ]);
+        write!(
+            f,
+            "{}\n{}",
+            "CONFIGURATION".cyan().bold().underline(),
+            table
+        )
+    }
+}
+
 /// Returns all headings(`# <stuff>`) and their corresponding line numbers
 /// as a tuple: (headings, corresponding_line_no)
 pub fn get_headings(filename: &str) -> (Vec<String>, Vec<u32>) {
