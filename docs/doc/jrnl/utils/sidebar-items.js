@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["add_info_to_file","gen_report","gen_report_year","get_entry","get_headings","get_tags_from_file","handle_tags","open_editor","parse_entry_args","search_for_stuff"],"mod":["funcs"],"struct":["Config"]};
