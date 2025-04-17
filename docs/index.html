@@ -40,7 +40,7 @@
   <p> A sample video showing most of the functionalities of this tool with a dummy input </p>
   <video width=100% height=100% controls> <source src="video.mp4" type="video/mp4"> </video>
 
-  <h1> Features </h1>
+  <h1 id="features"> Features </h1>
   <ul>
   <li>Arranges entries of each day such that a month of entries is stored in a file. 
     File structure(tree):
@@ -132,7 +132,7 @@
     on your terminal's width. </li>
   </ul>
 
-  <h1> Usage </h1>
+  <h1 id="usage"> Usage </h1>
   <p> This is a quite detailed explanation of what I made this tool for and how to use it to get the most out of it </p>
   <p> Once <a href="https://github.com/kajuburfi/jrnl/tree/master?tab=readme-ov-file#installation">installed</a>, run <code>jrnl -V</code>. You should get the version printed out. </p>
 
@@ -245,6 +245,47 @@ jrnl -t "tag_name" -y YYYY -m MM</code></pre>
   <pre><code>jrnl --path "path" *any other flags here*</code></pre>
   Here, if you provide the <i>"path"</i>, it will use that. If you don't, it will search for <code>jrnl_folder</code> in 
   the current directory.
+
+  <h2><code>--print-config</code></h2>
+  This prints the current configuration in a nice table format.
+  Sample output, for the default config:(Colors can't be shown)
+  <pre><code class="lang-plaintext">CONFIGURATION
+╭──────────────────────────────┬─────────╮
+│ Quantities                   ┆ Value   │
+╞══════════════════════════════╪═════════╡
+│ Add Weekday                  ┆ true    │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Add Food Column              ┆ true    │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Add timestamp                ┆ true    │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Default Editor               ┆ hx      │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Default Pager                ┆ bat     │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Max rows to display for tags ┆ 5       │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ When to use pager            ┆ default │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Default path                 ┆ ~       │
+├╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┼╌╌╌╌╌╌╌╌╌┤
+│ Approximation sensitivity    ┆ 1       │
+╰──────────────────────────────┴─────────╯</code></pre>
+
+  <h1>Dependencies</h1>
+  <ol>
+  <li><a href="https://github.com/chronotope/chrono"><code>chrono</code></a>: For date and time purposes.</li>
+  <li><a href="https://github.com/clap-rs/clap"><code>clap</code></a>: For CLI arguments.</li>
+  <li><a href="https://github.com/colored-rs/colored"><code>colored</code></a>: For colored messages.</li>
+  <li><a href="https://github.com/mikaelmello/inquire"><code>inquire</code></a>: To interactively get the date(of entry to be fetched) from the user.</li>
+  <li><a href="https://docs.rs/pager/latest/pager/"><code>pager</code></a>: To page long outputs.</li>
+  <li><a href="https://github.com/Nukesor/comfy-table"><code>comfy-table</code></a>: To print tables.</li>
+  <li><a href="https://docs.rs/toml/latest/toml/"><code>toml</code></a>: To parse the configuration file.</li>
+  <li><a href="https://serde.rs/"><code>serde</code></a>: For use in <code>toml</code> and <code>clap</code>.</li>
+  <li><a href="https://docs.rs/term_size/latest/term_size/"><code>term_size</code></a>: To get the terminal width, to be able to wrap tables and calendars accordingly.</li>
+  <li><a href="https://docs.rs/stringmetrics/latest/stringmetrics/"><code>stringmetrics</code></a>: For <i>approximate</i> word searching.</li>
+  <li><a href="https://docs.rs/shellexpand/latest/shellexpand/"><code>shellexpand</code></a>: To expand the <code>~</code>(tilde) in paths.</li>
+  </ol>
 
   <h1>Any other doubts/questions?</h1>
   Feel free to open an <a href="https://github.com/kajuburfi/jrnl/issues">issue</a>.
