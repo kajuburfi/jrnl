@@ -3,8 +3,8 @@
 //! This is majorly just a bunch of functions thrown together that works.
 //!
 //! It is not very efficient, nor idiomatic, but it works(and is not noticeably slow).
+use crate::funcs::*;
 use crate::get_default_path;
-use crate::utils::funcs::*;
 use chrono::{DateTime, Datelike, Local, NaiveDate, format::ParseErrorKind};
 use colored::Colorize;
 use comfy_table::{
@@ -20,9 +20,6 @@ use std::{
     process,
 };
 use stringmetrics::levenshtein;
-
-#[path = "funcs.rs"]
-pub mod funcs;
 
 /// Sets the Config
 ///

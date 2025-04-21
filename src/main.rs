@@ -1,5 +1,6 @@
-// Author: Tejas Gudgunti
 /* TODO:
+ * [X] Add a `--open` flag, to be able to make and open any file within `jrnl_folder`
+ * [X] Maybe get rid of `--open-entry` flag, and just take a optional positional argument in place of it
 */
 
 //! This is one of my first rust projects, and is therefore not very idiomatic.
@@ -7,15 +8,15 @@
 //! Continue at your own risk.
 //!
 //! This is made mostly for my own reference later on, when I will eventually need it.
-use crate::funcs::inquire_date;
 use crate::utils::*;
 use chrono::{DateTime, Datelike, Local};
 use clap::Parser;
 use colored::Colorize;
+use funcs::{check_file_existed, inquire_date, read_config};
 use shellexpand::tilde;
 use std::{path::Path, process};
-use utils::funcs::{check_file_existed, read_config};
 
+mod funcs;
 mod utils;
 
 #[derive(Parser, Debug)]
@@ -24,13 +25,14 @@ mod utils;
 /// Provides features like tags, to search by tag, generating reports
 /// for a given month, pre-filling some data(date, weekday, etc)
 struct Cli {
+    /// Optionally provide the date as YYYY-MM-DD or type `c` to open the calendar picker
+    /// , to open the relevant entry in the configured editor.
+    #[arg(default_missing_value=Some("c"), num_args=0..=1, group="main")]
+    open_entry: Option<String>,
+
     /// Provide the date as YYYY-MM-DD, to fetch the relevant entry.
     #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1, group="main")]
     entry: Option<String>,
-
-    /// Provide the date as YYYY-MM-DD, to open the relevant entry in the configured editor.
-    #[arg(short, long, default_missing_value=Some("a"), num_args=0..=1, group="main")]
-    open_entry: Option<String>,
 
     /// List all occurances of a tag in a given file; Defaults to current month's file.
     #[arg(short, long, groups = ["main", "yearmonth"])]
@@ -40,13 +42,9 @@ struct Cli {
     #[arg(short, long, groups = ["main", "searching", "yearmonth"])]
     search: Option<String>,
 
-    /// Provide a year(YYYY) to search for a tag in, or to generate a report
-    #[arg(short, long, requires = "yearmonth", default_missing_value=Some("0"), num_args=0..=1)]
-    year: Option<i32>,
-
-    /// Provide the month(MM) to search for the tag in, or to generate a report
-    #[arg(short, long, requires = "yearmonth", default_missing_value=Some("0"), num_args=0..=1)]
-    month: Option<u32>,
+    /// Provide a path to search for the directory `jrnl`.
+    #[arg(short, long, default_missing_value=Some("."), num_args=0..=1)]
+    path: Option<String>,
 
     /// Generate a report about a given month's file; Defaults to current month's file.
     #[arg(long, groups = ["main", "yearmonth"])]
@@ -56,17 +54,25 @@ struct Cli {
     #[arg(long, group = "main")]
     open_config: bool,
 
-    /// Search for similar words as well, along with the current word.
-    #[arg(short, long, requires = "searching", default_missing_value=Some("0"), num_args=0..=1)]
-    approx: Option<u32>,
-
-    /// Provide a path to search for the directory `jrnl`.
-    #[arg(short, long, default_missing_value=Some("."), num_args=0..=1)]
-    path: Option<String>,
-
     /// Print the current configuration
     #[arg(long, group = "main")]
     print_config: bool,
+
+    /// Opens a file, in `jrnl_folder`, with any name, just to add some notes.
+    #[arg(long, group = "main")]
+    open: Option<String>,
+
+    /// Provide a year(YYYY) to search for a tag in, or to generate a report
+    #[arg(short, long, requires = "yearmonth", default_missing_value=Some("0"), num_args=0..=1)]
+    year: Option<i32>,
+
+    /// Provide the month(MM) to search for the tag in, or to generate a report
+    #[arg(short, long, requires = "yearmonth", default_missing_value=Some("0"), num_args=0..=1)]
+    month: Option<u32>,
+
+    /// Search for similar words as well, along with the current word.
+    #[arg(short, long, requires = "searching", default_missing_value=Some("0"), num_args=0..=1)]
+    approx: Option<u32>,
 }
 
 fn main() {
@@ -106,10 +112,9 @@ fn main() {
         Some(entry) => &entry,
     };
     let args_open_entry = match args.open_entry.as_deref() {
-        None => "",
-        // Use inquire if no input for `-o`
-        Some("a") => &inquire_date().format("%Y-%m-%d").to_string(),
-        Some(a) => &a,
+        None => &today.format("%Y-%m-%d").to_string(),
+        Some("c") => &inquire_date().format("%Y-%m-%d").to_string(),
+        Some(a) => a,
     };
     let args_tag = match args.tag.as_deref() {
         None => "",
@@ -141,6 +146,10 @@ fn main() {
         None => 0,
         Some(0) => read_config().0.approx_variation,
         Some(num) => num,
+    };
+    let args_open = match args.open.as_deref() {
+        None => "",
+        Some(entry) => &entry,
     };
 
     // Handle arguments - not very efficiently or idiomatically
@@ -182,12 +191,23 @@ fn main() {
             )
         {
             println!(
-                "{}",
-                format!("Entry does not exist for {}", entry_date).red()
+                "{}{}",
+                "Entry info added for ".yellow(),
+                entry_date.yellow().bold()
             );
-            process::exit(1);
         }
         open_editor(entry_date);
+    }
+
+    if args_open != "" {
+        let has_file_existed = check_file_existed(&args_open);
+        if !has_file_existed {
+            println!("Made new file: {}", args_open);
+        }
+        process::Command::new(read_config().0.editor)
+            .arg(format!("{}/jrnl_folder/{}", get_default_path(), args_open))
+            .status()
+            .expect("Failed to execute process");
     }
 
     if args.gen_report {
@@ -210,18 +230,6 @@ fn main() {
 
     if args.print_config {
         println!("{}", read_config().0);
-    }
-
-    if args_tag == ""
-        && args_entry == ""
-        && args_open_entry == ""
-        && !args.gen_report
-        && !args.open_config
-        && !args.print_config
-        && args_search == ""
-    {
-        let today_date = today.format("%Y-%m-%d").to_string();
-        open_editor(today_date);
     }
 }
 

@@ -2,7 +2,7 @@
 
 //! This contains _small_ functions that are used in [`utils`][crate::utils]
 //! Some of them are directly used in [`main`][crate::main]
-use chrono::{Month, NaiveDate};
+use chrono::{Datelike, Month, NaiveDate};
 use colored::Colorize;
 use comfy_table::{ContentArrangement, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
 use inquire::DateSelect;
@@ -11,6 +11,7 @@ use std::{
     fs::{self, File},
     io::ErrorKind,
     path::Path,
+    process,
 };
 
 use crate::utils::*;
