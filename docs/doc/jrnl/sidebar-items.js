@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["get_default_path","main"],"mod":["utils"],"struct":["Cli"]};
+window.SIDEBAR_ITEMS = {"fn":["get_default_path","main"],"mod":["funcs","utils"],"struct":["Cli"]};

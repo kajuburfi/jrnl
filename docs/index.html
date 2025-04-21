@@ -170,6 +170,14 @@
   get a nice table as can be seen <a href="#foodTableExample">here</a>.
   </p>
 
+  <h2>Positional argument: date</h2>
+  You can open any given entry by providing an optional positional argument as such:
+  <pre><code>jrnl YYYY-MM-DD #OR
+jrnl #Opens today's entry</code></pre>
+  By default, if you just run <code>jrnl</code>, then the current date(today's date) will be considered. If you want 
+  the interactive calendar to show, then you can use <pre><code>jrnl c</code></pre> This will open an interactive 
+  calendar, from which you can select the date.
+
   <h2><code>--entry</code> or <code>-e</code></h2>
   <p>
   This flag is used to fetch any given day's entry if it exists.
@@ -188,12 +196,6 @@
   presented again.
   </p>
 
-  <h2><code>--open-entry</code> or <code>-o</code></h2>
-  This flag is similar to the last one in user input, but instead of printing out the entry, it will open
-  that entry in your given editor(configured in the <code>config.toml</code> file). General usage:
-  <pre><code>jrnl --open-entry YYYY-MM-DD   # OR
-jrnl --open-entry</code></pre>
-  
   <h2><code>--tag</code> or <code>-t</code></h2>
   This flag allows you to fetch the entries for a given month(or year). General usage:
   <pre><code>jrnl --tag "tag_name" --year YYYY --month MM # OR
