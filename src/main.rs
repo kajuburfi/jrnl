@@ -181,7 +181,15 @@ fn main() {
         println!("{}", entry);
     }
 
-    if args_open_entry != "" {
+    if args_open_entry != ""
+        && args_tag == ""
+        && args_search == ""
+        && args_entry == ""
+        && args_open == ""
+        && !args.open_config
+        && !args.print_config
+        && !args.gen_report
+    {
         let entry_date_naive = parse_entry_args(args_open_entry);
         let entry_date = entry_date_naive.format("%Y-%m-%d").to_string();
         if get_entry(entry_date_naive)
