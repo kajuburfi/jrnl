@@ -17,4 +17,5 @@ serde = { version = "1.0.219", features = ["serde_derive"] }
 term_size = "0.3.2"
 stringmetrics = "2.2.2"
 shellexpand = "3.1.0"
+parse_datetime = "0.8.0"
 

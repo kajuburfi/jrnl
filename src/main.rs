@@ -12,6 +12,7 @@ use chrono::{DateTime, Datelike, Local};
 use clap::Parser;
 use colored::Colorize;
 use funcs::{check_file_existed, inquire_date, read_config};
+use parse_datetime::parse_datetime_at_date as pdad;
 use shellexpand::tilde;
 use std::{path::Path, process};
 
@@ -113,7 +114,19 @@ fn main() {
     let args_open_entry = match args.open_entry.as_deref() {
         None => &today.format("%Y-%m-%d").to_string(),
         Some("c") => &inquire_date().format("%Y-%m-%d").to_string(),
-        Some(a) => a,
+        // Some cases to check to be able to use human relative time(yesterday, last week, etc)
+        Some(a) => {
+            let parts: Vec<&str> = a.split('-').collect();
+            if a.len() == 10 && parts[0].len() == 4 && parts[1].len() == 2 && parts[2].len() == 2 {
+                a
+            } else {
+                &pdad(today, a)
+                    .unwrap()
+                    .naive_utc()
+                    .format("%Y-%m-%d")
+                    .to_string()
+            }
+        }
     };
     let args_tag = match args.tag.as_deref() {
         None => "",
