@@ -221,7 +221,7 @@ pub fn get_entry(date: NaiveDate) -> String {
         if reached_date_yet && cur_line.starts_with("#") {
             finished_entry = true;
         }
-        if cur_line.contains(&entry_date) {
+        if cur_line.contains(&format!("# {}", entry_date)) {
             reached_date_yet = true;
             if read_config().0.add_weekday {
                 entry.push_str(&format!(

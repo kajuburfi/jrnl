@@ -1,6 +1,5 @@
 /* TODO:
- * [X] Add a `--open` flag, to be able to make and open any file within `jrnl_folder`
- * [X] Maybe get rid of `--open-entry` flag, and just take a optional positional argument in place of it
+ * [X] Fix dates headings
 */
 
 //! This is one of my first rust projects, and is therefore not very idiomatic.
