@@ -120,11 +120,18 @@ fn main() {
             if a.len() == 10 && parts[0].len() == 4 && parts[1].len() == 2 && parts[2].len() == 2 {
                 a
             } else {
-                &pdad(today, a)
-                    .unwrap()
-                    .naive_utc()
-                    .format("%Y-%m-%d")
-                    .to_string()
+                let pdad_result = pdad(today, a);
+                match pdad_result {
+                    Ok(value) => &value.naive_utc().format("%Y-%m-%d").to_string(),
+                    Err(e) => {
+                        println!(
+                            "{}\nError: {}",
+                            "Couldn't understand your input\nPlease try again.".red(),
+                            e
+                        );
+                        process::exit(1);
+                    }
+                }
             }
         }
     };
