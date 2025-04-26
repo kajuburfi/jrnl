@@ -59,6 +59,7 @@ struct Cli {
     print_config: bool,
 
     /// Opens a file, in `jrnl_folder`, with any name, just to add some notes.
+    /// You can also use `--open e` to open `events.md` since it is a default file.
     #[arg(long, group = "main")]
     open: Option<String>,
 
@@ -168,6 +169,7 @@ fn main() {
     };
     let args_open = match args.open.as_deref() {
         None => "",
+        Some("e") => "events.md",
         Some(entry) => &entry,
     };
 

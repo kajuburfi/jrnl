@@ -1073,6 +1073,8 @@ pub fn gen_report_year(year: i32) {
     println!("{}", table);
 }
 
+/// Read the `events.md` file located in `jrnl_folder`, and returns a Vector containing
+/// a tuple of NaiveDate and the respective String.
 pub fn read_events() -> Vec<(NaiveDate, String)> {
     let file_result = File::open(format!("{}/jrnl_folder/events.md", get_default_path()));
     let file = match file_result {
