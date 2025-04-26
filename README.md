@@ -72,6 +72,7 @@ All data about the config file is mentioned in the comments.
 - [`term_size`](https://docs.rs/term_size/latest/term_size/): To get the terminal width, to be able to wrap tables and calendars accordingly.
 - [`stringmetrics`](https://docs.rs/stringmetrics/latest/stringmetrics/): For _approximate_ word searching.
 - [`shellexpand`](https://docs.rs/shellexpand/latest/shellexpand/): To expand the `~`(tilde) in paths.
+- [`parse_datetime`](https://docs.rs/parse_datetime/latest/parse_datetime/): To convert human-readable time to exact dates.
 
 ## License
 

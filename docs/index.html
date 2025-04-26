@@ -170,6 +170,23 @@
   get a nice table as can be seen <a href="#foodTableExample">here</a>.
   </p>
 
+  <h3 id="events">Events</h3>
+  <p>
+  Make a file called <code>events.md</code> in your <code>jrnl_folder</code>. Here, you can store all your events
+  in a specific format, and when you run <code>--gen-report</code>, it shows you the upcoming events, and the 
+  recently completed ones, with highlighting.
+  </p>
+  <p> The format to be followed is:
+  <pre><code class="lang-plaintext">- [MM-DD] Information about the event
+// Example
+- [04-25] Person A's birthday.</code></pre>
+  Any lines not starting with <code>-</code> will be ignored, so this can be used to add comments if required.
+  If any error occurs in parsing the date, an Error with the line number will be shown so you can correct it.
+  You can also open the events file from anywhere using <code>jrnl --open e</code>. Here, <code>e</code> is hardcoded
+  to mean the <code>events.md</code> file. This means you cannot create a file named <code>e</code>, but can create 
+  a file named <code>e.txt</code>. This is simply for ease of input.
+  </p>
+
   <h2>Positional argument: date</h2>
   You can open any given entry by providing an optional positional argument as such:
   <pre><code>jrnl YYYY-MM-DD #OR
@@ -235,6 +252,9 @@ jrnl -t "tag_name" -y YYYY -m MM</code></pre>
   entries. Here, <i>n</i> is the corresponding number provided in the <code>config.toml</code> file.
   If a year is passed, without any month, then the report is generated for the provided year(if not provided, then 
   it defaults to the current year).
+  <p>
+  This also prints the upcoming and recently completed events. (Refer <a href="#events">this</a>)
+  </p>
 
   <h2><code>--open-config</code></h2>
   This does exactly what is says it does. It opens the config file - <code>~/.config/jrnl/config.toml</code> in your 
@@ -274,6 +294,15 @@ jrnl -t "tag_name" -y YYYY -m MM</code></pre>
 │ Approximation sensitivity    ┆ 1       │
 ╰──────────────────────────────┴─────────╯</code></pre>
 
+  <h2><code>--open</code></h2>
+  This is a flag that will open any filename(makes the file if not present) in your <code>jrnl_folder</code>. 
+  This is so that you can add some notes or whatever. Usage:
+  <pre><code class="lang-plaintext">jrnl --open "filename"
+# Example
+jrnl --open events.md</code></pre>
+  To use the events functionality, refer <a href="#events">this</a>. 
+  
+
   <h1>Dependencies</h1>
   <ol>
   <li><a href="https://github.com/chronotope/chrono"><code>chrono</code></a>: For date and time purposes.</li>
@@ -287,6 +316,7 @@ jrnl -t "tag_name" -y YYYY -m MM</code></pre>
   <li><a href="https://docs.rs/term_size/latest/term_size/"><code>term_size</code></a>: To get the terminal width, to be able to wrap tables and calendars accordingly.</li>
   <li><a href="https://docs.rs/stringmetrics/latest/stringmetrics/"><code>stringmetrics</code></a>: For <i>approximate</i> word searching.</li>
   <li><a href="https://docs.rs/shellexpand/latest/shellexpand/"><code>shellexpand</code></a>: To expand the <code>~</code>(tilde) in paths.</li>
+  <li><a href="https://docs.rs/parse_datetime/latest/parse_datetime/"><code>parse_datetime</code></a>: To convert human-readable time to exact dates.</li>
   </ol>
 
   <h1>Any other doubts/questions?</h1>
