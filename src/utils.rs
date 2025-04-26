@@ -815,7 +815,7 @@ pub fn gen_report(year: i32, month: u32) {
     println!("{}", print_calendar(year, month, dates));
 
     // Most used tags
-    println!("{}", "Most used tags:".yellow().underline());
+    println!("{}", "Most used tags:".yellow().bold());
     let file_tags = get_tags_from_file(&filename);
     let mut freq_map: HashMap<String, u32> = HashMap::new();
     for item in file_tags.iter() {
@@ -841,6 +841,71 @@ pub fn gen_report(year: i32, month: u32) {
         }
     }
     println!("{}", table);
+
+    let events_vec = read_events();
+    let today = NaiveDate::from_ymd_opt(
+        Local::now().year(),
+        Local::now().month(),
+        Local::now().day(),
+    )
+    .unwrap();
+    let mut upcoming: Vec<String> = Vec::new();
+    let mut completed: Vec<String> = Vec::new();
+    for event in events_vec {
+        let diff = (event.0 - today).num_days();
+        if diff == 0 {
+            upcoming.push(format!(
+                "[{}] {}: {}",
+                event.0.format("%Y-%m-%d").to_string().cyan(),
+                "TODAY!".red().underline(),
+                event.1
+            ));
+        } else if diff == 1 {
+            upcoming.push(format!(
+                "[{}] {} day from now: {}",
+                event.0.format("%Y-%m-%d").to_string().cyan(),
+                diff.to_string().yellow(),
+                event.1
+            ));
+        } else if diff > 1 && diff <= 7 {
+            upcoming.push(format!(
+                "[{}] {} days from now: {}",
+                event.0.format("%Y-%m-%d").to_string().cyan(),
+                diff.to_string().yellow(),
+                event.1
+            ));
+        } else if diff > 8 && diff <= 30 {
+            upcoming.push(format!(
+                "[{}] {} days from now: {}",
+                event.0.format("%Y-%m-%d").to_string().cyan(),
+                diff.to_string().bold(),
+                event.1
+            ));
+        } else if diff == -1 {
+            completed.push(format!(
+                "[{}] {} day ago: {}",
+                event.0.format("%Y-%m-%d").to_string().cyan(),
+                (-diff).to_string().bold(),
+                event.1
+            ));
+        } else if diff < -1 && diff >= -30 {
+            completed.push(format!(
+                "[{}] {} days ago: {}",
+                event.0.format("%Y-%m-%d").to_string().cyan(),
+                (-diff).to_string().bold(),
+                event.1
+            ));
+        }
+    }
+
+    println!("\n{}", "Upcoming Events:".yellow().bold());
+    for item in upcoming {
+        println!("{}", item);
+    }
+    println!("\n{}", "Recently completed Events:".yellow().bold());
+    for item in completed {
+        println!("{}", item);
+    }
 }
 
 /// Generates a report for a year.
@@ -1006,4 +1071,65 @@ pub fn gen_report_year(year: i32) {
     println!();
     println!("{}", "Most used tags:".yellow().underline());
     println!("{}", table);
+}
+
+pub fn read_events() -> Vec<(NaiveDate, String)> {
+    let file_result = File::open(format!("{}/jrnl_folder/events.md", get_default_path()));
+    let file = match file_result {
+        Ok(file) => file,
+        Err(e) => match e.kind() {
+            // If the file is not found, say that it doesn't exist, instead of panicking.
+            ErrorKind::NotFound => {
+                eprintln!(
+                    "{}", 
+                    "`events.md` does not exist in your `jrnl_folder`. \nPlease make it for this to work.".red()
+                );
+                process::exit(1);
+            }
+            other => panic!("Error opening file: {other}"),
+        },
+    };
+
+    let reader: BufReader<File> = BufReader::new(file); // Reader to read by lines
+    let mut output: Vec<(NaiveDate, String)> = Vec::new();
+
+    let mut line_number = 0;
+    for line in reader.lines() {
+        line_number += 1;
+        let cur_line: String = match line {
+            Ok(line) => line.clone(),
+            Err(e) => {
+                eprintln!("{}", e.to_string().red());
+                "".to_string()
+            }
+        };
+
+        if cur_line.starts_with('-') {
+            let parts: Vec<&str> = cur_line.split(&['[', ']'][..]).collect();
+            if parts.len() != 3 {
+                continue;
+            }
+            let date_parts: Vec<&str> = parts[1].split('-').collect();
+            let mut u32_date_parts: Vec<u32> = Vec::new();
+            for item in date_parts {
+                let new_item: u32 = item.parse().unwrap_or(0);
+                u32_date_parts.push(new_item);
+            }
+            let date_result =
+                NaiveDate::from_ymd_opt(Local::now().year(), u32_date_parts[0], u32_date_parts[1]);
+            let date = match date_result {
+                Some(d) => d,
+                None => {
+                    eprintln!(
+                        "{}: Something wrong is there with your events.md file at line number {}",
+                        "ERROR".red().bold(),
+                        line_number.to_string().yellow().bold(),
+                    );
+                    process::exit(1);
+                }
+            };
+            output.push((date, parts[2].trim().to_string()));
+        }
+    }
+    output
 }
