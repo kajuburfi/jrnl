@@ -227,7 +227,9 @@ fn main() {
     }
 
     if args_open != "" {
-        let has_file_existed = check_file_existed(&args_open);
+        let has_file_existed = check_file_existed(&tilde(
+            &format!("{}/jrnl_folder/{}", get_default_path(), args_open).to_owned(),
+        ));
         if !has_file_existed {
             println!("Made new file: {}", args_open);
         }
