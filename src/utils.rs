@@ -392,20 +392,19 @@ pub fn search_for_stuff(
         }
 
         // Searching within words or across words
-        if cur_line.clone().contains(word)
-            && search
-            && (cur_line
-                .clone()
-                .chars()
-                .nth(cur_line.clone().rfind(word).unwrap_or(0) - 1)
-                .unwrap_or(' ')
-                .is_alphanumeric()
-                || cur_line
-                    .clone()
-                    .chars()
-                    .nth(cur_line.clone().rfind(word).unwrap_or(0) + word.chars().count())
-                    .unwrap_or(' ')
-                    .is_alphanumeric())
+        if cur_line.clone().contains(word) && search
+        // && (cur_line
+        //     .clone()
+        //     .chars()
+        //     .nth(cur_line.clone().rfind(word).unwrap_or(0) - 1)
+        //     .unwrap_or(' ')
+        //     .is_alphanumeric()
+        //     || cur_line
+        //         .clone()
+        //         .chars()
+        //         .nth(cur_line.clone().rfind(word).unwrap_or(0) + word.chars().count())
+        //         .unwrap_or(' ')
+        //         .is_alphanumeric())
         {
             let line_to_push = cur_line
                 .replace(word, &format!("{}", word.purple()))
