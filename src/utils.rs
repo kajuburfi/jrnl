@@ -733,7 +733,12 @@ pub fn open_editor(entry_date: String) {
             if i == j && head[1..].trim() == entry_date {
                 let cmd_arg: String;
                 if read_config().0.editor == "hx" {
-                    cmd_arg = format!("{}:{}", filename, no);
+                    if read_config().0.add_food_column {
+                        // Open the exact position
+                        cmd_arg = format!("{}:{}:10", filename, no + 1);
+                    } else {
+                        cmd_arg = format!("{}:{}", filename, no);
+                    }
                 } else {
                     cmd_arg = format!("{}", filename);
                 }
