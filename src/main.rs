@@ -1,5 +1,4 @@
 /* TODO:
- * [X] Fix dates headings
 */
 
 //! This is one of my first rust projects, and is therefore not very idiomatic.

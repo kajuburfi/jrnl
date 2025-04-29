@@ -413,6 +413,7 @@ pub fn search_for_stuff(
                 .to_string();
             tagged_entries.push(line_to_push);
             tagged_entry_dates.push(entry_date_title.clone());
+            continue;
         }
         let words: Vec<&str> = cur_line
             .split(&[' ', '(', ')', ',', '.', ';', '-', '|', '/'][..])
