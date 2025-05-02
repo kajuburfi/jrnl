@@ -392,7 +392,11 @@ pub fn search_for_stuff(
         }
 
         // Searching within words or across words
-        if cur_line.clone().contains(word) && search
+        if cur_line
+            .clone()
+            .to_lowercase()
+            .contains(&word.to_lowercase())
+            && search
         // && (cur_line
         //     .clone()
         //     .chars()
@@ -406,12 +410,28 @@ pub fn search_for_stuff(
         //         .unwrap_or(' ')
         //         .is_alphanumeric())
         {
-            let line_to_push = cur_line
-                .replace(word, &format!("{}", word.purple()))
+            let mut result = String::new();
+            let mut start = 0;
+
+            // Loop through the original string
+            while let Some(pos) =
+                cur_line.clone().to_lowercase()[start..].find(&word.to_lowercase())
+            {
+                // Append text before the match
+                result.push_str(&cur_line[start..start + pos]);
+                // Append the replacement
+                result.push_str(&word.purple().to_string());
+                // Move start index past the match
+                start += pos + word.len();
+            }
+
+            // Append the remaining part of the original string
+            result.push_str(&cur_line.clone()[start..]);
+            result
                 .replacen("- ", "", 1) // Only replace first `-`
                 .trim()
                 .to_string();
-            tagged_entries.push(line_to_push);
+            tagged_entries.push(result);
             tagged_entry_dates.push(entry_date_title.clone());
             continue;
         }
