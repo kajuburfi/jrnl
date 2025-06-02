@@ -124,12 +124,8 @@ fn main() {
                 match pdad_result {
                     Ok(value) => &value.naive_utc().format("%Y-%m-%d").to_string(),
                     Err(e) => {
-                        println!(
-                            "{}\nError: {}",
-                            "Couldn't understand your input\nPlease try again.".red(),
-                            e
-                        );
-                        process::exit(1);
+                        println!("{}\nError: {}\n", "Couldn't understand your input".red(), e);
+                        &inquire_date().format("%Y-%m-%d").to_string()
                     }
                 }
             }
