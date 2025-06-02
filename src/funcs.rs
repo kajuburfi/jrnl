@@ -119,6 +119,9 @@ pub fn correct_month_nums(num: u32) -> String {
         7 => "07".to_string(),
         8 => "08".to_string(),
         9 => "09".to_string(),
+        10 => "10".to_string(),
+        11 => "11".to_string(),
+        12 => "12".to_string(),
         _ => "00".to_string(),
     }
 }
