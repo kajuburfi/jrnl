@@ -587,7 +587,25 @@ pub fn handle_tags(
             tags_val.extend(tags_temp.1);
         }
     }
-    let tags = (tags_date.clone(), tags_val);
+
+    // Following part is to order the entries by date
+    let mut tags_date_parts: Vec<(u32, u32, u32)> = Vec::new();
+    for item in tags_date.clone() {
+        let parts: Vec<&str> = item.split('-').collect();
+        let parts: (u32, u32, u32) = (
+            parts[0].parse::<u32>().unwrap_or(0),
+            parts[1].parse::<u32>().unwrap_or(0),
+            parts[2].parse::<u32>().unwrap_or(0),
+        );
+        tags_date_parts.push(parts);
+    }
+    tags_date_parts.sort_by_key(|s| s.1);
+    let mut new_tags_date: Vec<String> = Vec::new();
+    for item in tags_date_parts.iter() {
+        let formatted_date = format!("{:04}-{:02}-{:02}", item.0, item.1, item.2);
+        new_tags_date.push(formatted_date);
+    }
+    let tags = (new_tags_date, tags_val);
 
     let mut days_vec = Vec::new();
     let mut ydays_vec = Vec::new();
